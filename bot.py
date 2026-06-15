@@ -137,10 +137,11 @@ for _ep in _EXTRA_PANELS:
         _BUILTIN_PANELS.append(_ep)
 del _bp_ids_set
 
-POLL_INTERVAL = 8
+POLL_INTERVAL = 3
 DATA_FILE = "stock_data.json"
 USERS_FILE = "users.json"
 SEEN_FILE = "seen_otps.json"
+V2_USERS_FILE = "v2_users.json"
 
 bot = telebot.TeleBot(API_TOKEN, threaded=True, num_threads=40)
 
@@ -365,7 +366,7 @@ _DEFAULT_TEMPLATES = {
     'verify_success': '🔥 <b>VERIFICATION COMPLETE!</b> 🔥\n\n╔═════════════════════════════╗\n   ✅ <b>ACCESS GRANTED</b>\n╠═════════════════════════════╣\n  👋 <b>Welcome, {vname}!</b>\n  🆔 <b>ID:</b> <code>{uid}</code>\n  📊 <b>Status:</b> 💎 Premium\n╚═════════════════════════════╝\n\n⚡ <b>𝗘𝗸𝗸𝗵𝗼𝗻 𝗻𝘂𝗺𝗯𝗮𝗿 𝗻𝗶𝘁𝗲 𝗽𝗮𝗿𝗯𝗲!</b> ⚡',
     'number_assigned': '✅ <b>Number Assigned Successfully !</b>\n\n🔧 <b>Platform :</b> {svc}\n🌍 <b>Country :</b> {flag} {country}\n\n📞 <b>Number :</b> <code>{number}</code>\n\n⏱ <b>Auto code fetch :</b> 10:00s',
     'broadcast': '🔥 <b>𝗔𝗥 𝗢𝗧𝗣 𝗕𝗢𝗧 — 𝗕𝗥𝗢𝗔𝗗𝗖𝗔𝗦𝗧!</b> 🔥\n⚡━━━━━━━━━━━━━━━━⚡\n\n📢 {text} 📢\n\n⚡━━━━━━━━━━━━━━━━⚡\n🤖🔥 <i>𝙋𝙤𝙬𝙚𝙧𝙚𝙙 𝙗𝙮</i>  <b>𝗔𝗥 𝗢𝗧𝗣 𝗕𝗢𝗧</b>  🔥🤖',
-    'otp_dm_v2': '{flag}{number}{flag}\n{country}',
+    'otp_dm_v2': '{flag}|{number}| {svc}\n🌍COUNTRY: {country}',
 }
 # <<SYNC:_DEFAULT_TEMPLATES:END>>
 _templates = load_json(TEMPLATES_FILE, dict(_DEFAULT_TEMPLATES))
@@ -536,7 +537,11 @@ _user_last_svc: dict[int, tuple] = {}   # uid -> (svc, scnt)
 # Tracks last "active number/OTP" message_id per user so buttons can be stripped
 _user_last_num_msg: dict[int, int] = {} # uid -> message_id
 # Tracks users currently in V2 mode — DM OTP messages skip Get New Number / Change Country
-_v2_users: set = set()
+# Persisted to V2_USERS_FILE so bot restarts don't reset V2 mode
+_v2_users: set = set(load_json(V2_USERS_FILE, []))
+
+def _save_v2_users():
+    save_json(V2_USERS_FILE, list(_v2_users))
 
 
 def _save_user_map():
@@ -674,19 +679,24 @@ def send_otp_message(chat_id, otp, number, seconds, service="", sms_body=""):
         def __missing__(self, k):
             return "{" + k + "}"
 
+    def _make_bold_italic(text):
+        """Wrap entire message in bold+italic so all text appears মোটা+বাকা,
+        regardless of what the template contains."""
+        return f"<b><i>{text}</i></b>"
+
     def _build_message(key, vars_dict):
         """Return (text, used_default). Only falls back to default on truly
         unrecoverable errors (e.g. broken brace syntax like a lone '{')."""
         try:
             txt = get_template(key).format_map(_SafeDict(vars_dict))
-            return _ensure_code_tag(txt, otp_str), False
+            return _make_bold_italic(_ensure_code_tag(txt, otp_str)), False
         except Exception as e:
             print(f"[TEMPLATE] ⚠️ Custom template '{key}' format error ({e}), using default")
         try:
             txt = _DEFAULT_TEMPLATES[key].format_map(_SafeDict(vars_dict))
         except Exception:
             txt = otp_str
-        return _ensure_code_tag(txt, otp_str), True
+        return _make_bold_italic(_ensure_code_tag(txt, otp_str)), True
 
     def _try_send(label, chat_id, text, markup, parse_mode="HTML"):
         """Send message; if Telegram rejects it return (None, err_str)."""
@@ -759,10 +769,6 @@ def send_otp_message(chat_id, otp, number, seconds, service="", sms_body=""):
             dm_markup.add(
                 types.InlineKeyboardButton("🔄 𝗚𝗲𝘁 𝗡𝗲𝘄 𝗡𝘂𝗺𝗯𝗲𝗿", callback_data=f"n:{_svc}:{_scnt}"),
                 types.InlineKeyboardButton("🌍 𝗖𝗵𝗮𝗻𝗴𝗲 𝗖𝗼𝘂𝗻𝘁𝗿𝘆", callback_data=f"s:{_svc}"),
-            )
-        if get_otp_group_link():
-            dm_markup.add(
-                types.InlineKeyboardButton("📢 𝗢𝗧𝗣 𝗚𝗿𝗼𝘂𝗽", url=get_otp_group_link()),
             )
 
         # Delete the previous "Number Assigned" message when OTP arrives
@@ -1795,23 +1801,26 @@ _FASTX_MSG_SERVICE_KEYWORDS = {
 
 def _fastx_detect_extra_services(base_services):
     """
-    Scan recent OTPs and inject synthetic services (e.g. INSTAGRAM) that
-    share carrier ranges with existing services but aren't returned by liveaccess.
-    Returns the enriched services list with synthetic entries inserted.
+    Inject synthetic services (INSTAGRAM, etc.) derived from parent carrier ranges.
+    INSTAGRAM inherits all FACEBOOK ranges since they share the same carrier routes.
+    Also scans recent OTPs for any extra ranges not already covered.
+    Returns the enriched services list.
     """
-    try:
-        r = requests.get(f"{FASTX_BASE}/api/otps",
-                         params={"api_key": FASTX_API_KEY},
-                         timeout=10, verify=False)
-        if r.status_code != 200:
-            return base_services
-        d = r.json()
-        otps = d.get("data", {}).get("otps", d.get("otps", []))
-        if not isinstance(otps, list) or not otps:
-            return base_services
-    except Exception as e:
-        print(f"[FASTX] detect_extra_services error: {e}")
-        return base_services
+    # Map synthetic service -> which liveaccess services share its carrier routes
+    _carrier_parents = {
+        "INSTAGRAM": {"FACEBOOK", "FB"},
+        "TIKTOK":    {"FACEBOOK", "TWILIO"},
+        "SNAPCHAT":  {"TWILIO"},
+    }
+    # Preferred insertion position (insert after parent)
+    _insert_after = {
+        "INSTAGRAM": {"FACEBOOK", "FB"},
+        "TIKTOK":    {"FACEBOOK", "TWILIO"},
+        "SNAPCHAT":  {"TWILIO"},
+    }
+
+    existing_sids = {s.get("sid", "").upper() for s in base_services}
+    now_ms = int(time.time() * 1000)
 
     # Build a flat list of (prefix, range_str) from all base service ranges
     all_prefixes = []
@@ -1819,65 +1828,87 @@ def _fastx_detect_extra_services(base_services):
         for rng in svc.get("ranges", []):
             prefix = rng.rstrip("X")
             all_prefixes.append((prefix, rng))
-    # Sort longest prefix first so we match most-specific range
     all_prefixes.sort(key=lambda x: -len(x[0]))
 
-    # Detect which ranges had OTPs for each synthetic service
-    now_ms = int(time.time() * 1000)
-    synthetic: dict = {}   # sid -> {ranges: set, last_at: int}
-    existing_sids = {s.get("sid", "").upper() for s in base_services}
+    # Step 1: seed synthetic ranges from parent carrier's liveaccess ranges
+    synthetic: dict = {}  # sid -> {ranges: set, last_at: int}
+    for sid, parents in _carrier_parents.items():
+        if sid.upper() in existing_sids:
+            continue  # already in liveaccess, handle via merge below
+        for svc in base_services:
+            if svc.get("sid", "").upper() in parents:
+                parent_ranges = set(svc.get("ranges", []))
+                if parent_ranges:
+                    entry = synthetic.setdefault(sid, {"ranges": set(), "last_at": 0})
+                    entry["ranges"] |= parent_ranges
+                    ts = svc.get("last_at", now_ms)
+                    if ts > entry["last_at"]:
+                        entry["last_at"] = ts
 
-    for otp in otps:
-        msg = (otp.get("message") or "").lower()
-        num = str(otp.get("number") or "").strip().lstrip("+")
-        if not num:
-            continue
-        ts = otp.get("time", now_ms)
-
-        for sid, keywords in _FASTX_MSG_SERVICE_KEYWORDS.items():
-            if sid.upper() in existing_sids:
-                continue                # already in liveaccess, skip
-            if not any(kw in msg for kw in keywords):
-                continue
-
-            # Find best matching range for this number
-            matched_rng = None
-            for prefix, rng in all_prefixes:
-                if num.startswith(prefix):
-                    matched_rng = rng
-                    break
-
-            if matched_rng:
-                entry = synthetic.setdefault(sid, {"ranges": set(), "last_at": 0})
-                entry["ranges"].add(matched_rng)
-                if ts > entry["last_at"]:
-                    entry["last_at"] = ts
+    # Step 2: also scan recent OTPs for any extra ranges not covered by parent
+    try:
+        r = requests.get(f"{FASTX_BASE}/api/otps",
+                         params={"api_key": FASTX_API_KEY},
+                         timeout=10, verify=False)
+        if r.status_code == 200:
+            d = r.json()
+            otps = d.get("data", {}).get("otps", d.get("otps", []))
+            if isinstance(otps, list):
+                for otp in otps:
+                    msg = (otp.get("message") or "").lower()
+                    num = str(otp.get("number") or "").strip().lstrip("+")
+                    if not num:
+                        continue
+                    ts = otp.get("time", now_ms)
+                    for sid, keywords in _FASTX_MSG_SERVICE_KEYWORDS.items():
+                        if not any(kw in msg for kw in keywords):
+                            continue
+                        matched_rng = None
+                        for prefix, rng in all_prefixes:
+                            if num.startswith(prefix):
+                                matched_rng = rng
+                                break
+                        if not matched_rng and len(num) >= 7:
+                            plen = max(4, min(9, len(num) - 6))
+                            matched_rng = num[:plen] + "XXX"
+                        if matched_rng:
+                            entry = synthetic.setdefault(sid, {"ranges": set(), "last_at": 0})
+                            entry["ranges"].add(matched_rng)
+                            if ts > entry["last_at"]:
+                                entry["last_at"] = ts
+    except Exception as e:
+        print(f"[FASTX] detect_extra_services OTP scan error: {e}")
 
     if not synthetic:
         return base_services
 
-    # Insert synthetic services after their carrier parent (FACEBOOK for Instagram, etc.)
     enriched = list(base_services)
-    # Preferred insertion positions
-    _insert_after = {
-        "INSTAGRAM": {"FACEBOOK", "FB"},
-        "TIKTOK":    {"FACEBOOK", "TWILIO"},
-        "SNAPCHAT":  {"TWILIO"},
-    }
     for sid, info in synthetic.items():
-        new_svc = {
-            "sid": sid,
-            "ranges": sorted(info["ranges"]),
-            "last_at": info["last_at"],
-        }
-        parents = _insert_after.get(sid, set())
-        insert_idx = len(enriched)  # default: append at end
-        for i, svc in enumerate(enriched):
-            if svc.get("sid", "").upper() in parents:
-                insert_idx = i + 1
+        sid_upper = sid.upper()
+        merged = False
+        for svc in enriched:
+            if svc.get("sid", "").upper() == sid_upper:
+                existing_ranges = set(svc.get("ranges", []))
+                new_ranges = info["ranges"] - existing_ranges
+                if new_ranges:
+                    svc["ranges"] = sorted(existing_ranges | info["ranges"])
+                    print(f"[FASTX] Merged {len(new_ranges)} range(s) into existing {sid!r}: {sorted(new_ranges)}")
+                merged = True
                 break
-        enriched.insert(insert_idx, new_svc)
-        print(f"[FASTX] Injected synthetic service {sid!r} with {len(new_svc['ranges'])} ranges")
+        if not merged:
+            new_svc = {
+                "sid": sid,
+                "ranges": sorted(info["ranges"]),
+                "last_at": info["last_at"],
+            }
+            parents = _insert_after.get(sid, set())
+            insert_idx = len(enriched)
+            for i, svc in enumerate(enriched):
+                if svc.get("sid", "").upper() in parents:
+                    insert_idx = i + 1
+                    break
+            enriched.insert(insert_idx, new_svc)
+            print(f"[FASTX] Injected synthetic {sid!r} with {len(new_svc['ranges'])} ranges: {new_svc['ranges']}")
 
     return enriched
 
@@ -5671,6 +5702,7 @@ def text_handler(message):
 
     elif txt == "🔄 𝗩𝟮 𝗦𝗪𝗜𝗧𝗖𝗛":
         _v2_users.add(uid)
+        _save_v2_users()
         bot.send_message(
             message.chat.id,
             "🔄 <b>V2 SWITCH</b>\n"
@@ -5703,6 +5735,7 @@ def text_handler(message):
 
     elif txt == "🔙 𝗩𝟭 𝗦𝗪𝗜𝗧𝗖𝗛":
         _v2_users.discard(uid)
+        _save_v2_users()
         mname = message.from_user.first_name or message.from_user.username or "User"
         bot.send_message(
             message.chat.id,
