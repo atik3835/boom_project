@@ -67,7 +67,7 @@ P3_SIGNIN_URL = P3_BASE_URL + "/signin"
 P3_CDR_PAGE = P3_BASE_URL + "/agent/SMSCDRStats"
 P3_CDR_DATA_URL = P3_BASE_URL + "/agent/res/data_smscdr.php"
 P3_USER_NAME = "Rabbi1_FD"
-P3_PASSWORD = "Rabbi1_FD"
+P3_PASSWORD = "Rabbi12"
 
 # ── Panel 4 (Rabbi12) ─────────────────────────────────────────────────────────
 P4_BASE_URL = "http://144.217.71.192/ints"
@@ -120,6 +120,7 @@ _BUILTIN_PANELS = [
     {'id': 'd6180', 'host': '91.232.105.47', 'base_url': 'http://91.232.105.47/ints', 'url_hint': 'http://91.232.105.47/ints/agent/SMSCDRStats', 'username': 'Mahofuza', 'password': 'Mahofuza12@', 'engine': 'ints_smscdr', 'data_path': '/agent/res/data_smscdr.php', 'admin_id': 6664150885},
     {'id': 'd76011', 'host': '139.99.69.196', 'base_url': 'http://139.99.69.196/ints', 'url_hint': 'http://139.99.69.196/ints/agent/SMSCDRStats', 'username': 'Mahofuza12', 'password': 'Mahofuza1', 'engine': 'ints_smscdr', 'data_path': '/agent/res/data_smscdr.php', 'admin_id': 6664150885},
     {'id': 'fastx1', 'host': 'fastxotps.com', 'base_url': 'https://fastxotps.com', 'url_hint': 'https://fastxotps.com/dashboard', 'username': 'MURAD', 'password': '', 'api_key': 'MURAD_979BB07726A593010D1BA4A2', 'api_key_param': 'api_key', 'engine': 'api_key', 'data_path': '/api/otps', 'admin_id': None},
+    {'id': 'bp13', 'host': '168.119.13.175', 'base_url': 'http://168.119.13.175/ints', 'url_hint': 'http://168.119.13.175/ints/agent/SMSCDRStats', 'username': 'Rabbi1_FD', 'password': 'Rabbi12', 'engine': 'ints_smscdr', 'data_path': '/agent/res/data_smscdr.php', 'admin_id': None},
 ]
 # <<SYNC:_BUILTIN_PANELS:END>>
 
