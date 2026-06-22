@@ -111,16 +111,17 @@ _BUILTIN_PANELS = [
     {'id': 'bp10', 'host': 'ivasms.com', 'base_url': 'https://ivasms.com', 'url_hint': 'https://ivasms.com/portal/sms/received', 'username': 'mdrashub2@gmail.com', 'password': 'Rabbi+nnn', 'engine': 'iva_sms', 'data_path': '/portal/sms/received', 'admin_id': None},
     {'id': 'bp11', 'host': '139.99.68.231', 'base_url': 'http://139.99.68.231/ints', 'url_hint': 'http://139.99.68.231/ints/agent/SMSCDRStats', 'username': 'Rabbi12', 'password': 'Rabbi12', 'engine': 'ints_smscdr', 'data_path': '/agent/res/data_smscdr.php', 'admin_id': None},
     {'id': 'bp12', 'host': '51.75.144.178', 'base_url': 'http://51.75.144.178/ints', 'url_hint': 'http://51.75.144.178/ints/agent/SMSCDRStats', 'username': 'Rabbi12', 'password': 'Rabbi12@', 'engine': 'ints_smscdr', 'data_path': '/agent/res/data_smscdr.php', 'admin_id': None},
-    {'id': 'd20591', 'host': '54.39.104.241', 'base_url': 'http://54.39.104.241/ints', 'url_hint': 'http://54.39.104.241/ints/client/SMSCDRStats', 'username': 'Atik9898', 'password': 'Atik9898', 'engine': 'ints_smscdr', 'data_path': '/agent/res/data_smscdr.php', 'admin_id': 6664150885},
-    {'id': 'd20984', 'host': '54.39.104.241', 'base_url': 'http://54.39.104.241/ints', 'url_hint': 'http://54.39.104.241/ints/agent/SMSCDRStats', 'username': 'Rabbi5', 'password': 'Rabbi5', 'engine': 'ints_smscdr', 'data_path': '/agent/res/data_smscdr.php', 'admin_id': 6664150885},
+    {'id': 'd20591', 'host': '54.39.104.241', 'base_url': 'http://54.39.104.241/ints', 'url_hint': 'http://54.39.104.241/ints/client/SMSCDRStats', 'username': 'Atik9898', 'password': 'Atik9898', 'engine': 'html_scrape', 'data_path': 'http://54.39.104.241/ints/client/SMSCDRStats', 'admin_id': 6664150885},
+    {'id': 'd20984', 'host': '54.39.104.241', 'base_url': 'http://54.39.104.241/ints', 'url_hint': 'http://54.39.104.241/ints/agent/SMSCDRStats', 'username': 'Rabbi5', 'password': 'Rabbi5', 'engine': 'ints_smsranges', 'data_path': '/agent/res/data_smsranges.php', 'admin_id': 6664150885},
     {'id': 'pscall1', 'host': 'pscall.net', 'base_url': 'http://pscall.net/restapi', 'url_hint': 'http://pscall.net/restapi/smsreport', 'username': 'api:pscall.net', 'password': '', 'api_key': 'SFNSQz1SS2NygIF6QlBR', 'api_key_param': 'key', 'engine': 'api_key', 'data_path': '/smsreport', 'admin_id': None},
     {'id': 'd34527', 'host': '151.80.19.204', 'base_url': 'http://151.80.19.204/ints', 'url_hint': 'http://151.80.19.204/ints/agent/SMSCDRStats', 'username': 'Atik9898', 'password': 'Atik9898', 'engine': 'ints_smscdr', 'data_path': '/agent/res/data_smscdr.php', 'admin_id': 6664150885},
     {'id': 'd39020', 'host': '139.99.69.196', 'base_url': 'http://139.99.69.196/ints', 'url_hint': 'http://139.99.69.196/ints/agent/SMSCDRStats', 'username': 'Mahofuza12', 'password': 'Mahofuza12', 'engine': 'ints_smscdr', 'data_path': '/agent/res/data_smscdr.php', 'admin_id': 6664150885},
-    {'id': 'd42653', 'host': '54.39.104.241', 'base_url': 'http://54.39.104.241/ints', 'url_hint': 'http://54.39.104.241/ints/agent/SMSCDRStats', 'username': 'Rabbi5', 'password': 'Rabbi5', 'engine': 'ints_smscdr', 'data_path': '/agent/res/data_smscdr.php', 'admin_id': 6664150885},
+    {'id': 'd42653', 'host': '54.39.104.241', 'base_url': 'http://54.39.104.241/ints', 'url_hint': 'http://54.39.104.241/ints/agent/SMSCDRStats', 'username': 'Rabbi5', 'password': 'Rabbi5', 'engine': 'ints_smsranges', 'data_path': '/agent/res/data_smsranges.php', 'admin_id': 6664150885},
     {'id': 'd6180', 'host': '91.232.105.47', 'base_url': 'http://91.232.105.47/ints', 'url_hint': 'http://91.232.105.47/ints/agent/SMSCDRStats', 'username': 'Mahofuza', 'password': 'Mahofuza12@', 'engine': 'ints_smscdr', 'data_path': '/agent/res/data_smscdr.php', 'admin_id': 6664150885},
     {'id': 'd76011', 'host': '139.99.69.196', 'base_url': 'http://139.99.69.196/ints', 'url_hint': 'http://139.99.69.196/ints/agent/SMSCDRStats', 'username': 'Mahofuza12', 'password': 'Mahofuza1', 'engine': 'ints_smscdr', 'data_path': '/agent/res/data_smscdr.php', 'admin_id': 6664150885},
     {'id': 'fastx1', 'host': 'fastxotps.com', 'base_url': 'https://fastxotps.com', 'url_hint': 'https://fastxotps.com/dashboard', 'username': 'MURAD', 'password': '', 'api_key': 'MURAD_979BB07726A593010D1BA4A2', 'api_key_param': 'api_key', 'engine': 'api_key', 'data_path': '/api/otps', 'admin_id': None},
-    {'id': 'bp13', 'host': '168.119.13.175', 'base_url': 'http://168.119.13.175/ints', 'url_hint': 'http://168.119.13.175/ints/agent/SMSCDRStats', 'username': 'Rabbi1_FD', 'password': 'Rabbi12', 'engine': 'ints_smscdr', 'data_path': '/agent/res/data_smscdr.php', 'admin_id': None},
+    {'id': 'bp13', 'host': '168.119.13.175', 'base_url': 'http://168.119.13.175/ints', 'url_hint': 'http://168.119.13.175/ints/agent/SMSCDRStats', 'username': 'Rabbi1_FD', 'password': 'Rabbi12', 'engine': 'ints_smsranges', 'data_path': '/agent/res/data_smsranges.php', 'admin_id': None},
+    {'id': 'mbcs1', 'host': 'mbcs-ms.com', 'base_url': 'https://mbcs-ms.com', 'url_hint': 'https://mbcs-ms.com/agent/SMSCDRReports', 'username': 'Rabbi', 'password': 'Rabbi12', 'engine': 'html_scrape', 'data_path': 'https://mbcs-ms.com/agent/SMSCDRReports', 'admin_id': None},
 ]
 # <<SYNC:_BUILTIN_PANELS:END>>
 
@@ -130,6 +131,9 @@ _EXTRA_PANELS = [
      'url_hint': 'https://fastxotps.com/dashboard', 'username': 'MURAD', 'password': '',
      'api_key': 'MURAD_979BB07726A593010D1BA4A2', 'api_key_param': 'api_key',
      'engine': 'api_key', 'data_path': '/api/otps', 'admin_id': None},
+    {'id': 'mbcs1', 'host': 'mbcs-ms.com', 'base_url': 'https://mbcs-ms.com',
+     'url_hint': 'https://mbcs-ms.com/agent/SMSCDRReports', 'username': 'Rabbi', 'password': 'Rabbi12',
+     'engine': 'html_scrape', 'data_path': 'https://mbcs-ms.com/agent/SMSCDRReports', 'admin_id': None},
 ]
 # Merge into _BUILTIN_PANELS in memory (deduplicated) so startup loop picks them up
 _bp_ids_set = {p["id"] for p in _BUILTIN_PANELS}
@@ -361,8 +365,8 @@ def _schedule_delete(chat_id, msg_id):
 TEMPLATES_FILE = "message_templates.json"
 # <<SYNC:_DEFAULT_TEMPLATES:START>>
 _DEFAULT_TEMPLATES = {
+    'otp_group': '━━━━━━━━━━━━━━━\n<blockquote>📱 <b>{svc}</b> {flag} | <code>{tagged_number}</code> | {flag}</blockquote>\n━━━━━━━━━━━━━━━\n<blockquote>🔑 KEY : <b>{otp}</b></blockquote>\n━━━━━━━━━━━━━━━\n<blockquote>🌍 Country: {country} {flag}</blockquote>\n━━━━━━━━━━━━━━━\n<blockquote>📩 MESSAGE\n{sms}</blockquote>\n━━━━━━━━━━━━━━━\n<blockquote>💬 Thanks for using 🫦👅</blockquote>\n━━━━━━━━━━━━━━━',
     'start': '🔥 <b>𝗔𝗥 𝗢𝗧𝗣 𝗕𝗢𝗧-𝗲 𝗦𝗔𝗚𝗢𝗧𝗢𝗠!</b> 🔥\n\n╔═════════════════════════════╗\n   🧾 <b>USER DASHBOARD</b>\n╠═════════════════════════════╣\n  👤 <b>User:</b> {uname}\n  🆔 <b>ID:</b> <code>{uid}</code>\n  📊 <b>Status:</b> 💎 Premium\n  🚀 <b>Workers:</b> 0\n╚═════════════════════════════╝\n\n╔══════════════════╗\n 𝗡𝗶𝗰𝗵𝗲𝗿 𝗰𝗵𝗮𝗻𝗻𝗲𝗹𝗲 <b>𝗝𝗢𝗜𝗡</b> 𝗵𝗼𝘆𝗲\n <b>𝗩𝗘𝗥𝗜𝗙𝗬</b> 𝗯𝗮𝘁𝗮𝗻𝗲 𝗰𝗹𝗶𝗰𝗸 𝗸𝗼𝗿𝗼!\n╚══════════════════╝\n\n🤖 <i>𝙋𝙤𝙬𝙚𝙧𝙚𝙙 𝙗𝙮</i>  <b>𝗔𝗥 𝗢𝗧𝗣 𝗕𝗢𝗧</b>',
-    'otp_group': '📱 <b><i>{svc}</i></b>{flag} | {tagged_number} | {flag}\n\n🔑 <b>KEY</b> : <b><i>{otp}</i></b>\n\n╭─────────────────╮\n📩 <b>MESSAGE</b>\n\n<i>{sms}</i>\n╰─────────────────╯\n💬 <i>Thanks for using</i> <b>@hot_otp_bot</b>',
     'otp_dm': '📱 {svc} {flag} | {number} | {flag}\n\xa0 👀তোর কোড আইছে রে👀\n\n🔑 Key: {otp}\n\n💬 Thanks for using @hot_otp_bot',
     'verify_success': '🔥 <b>VERIFICATION COMPLETE!</b> 🔥\n\n╔═════════════════════════════╗\n   ✅ <b>ACCESS GRANTED</b>\n╠═════════════════════════════╣\n  👋 <b>Welcome, {vname}!</b>\n  🆔 <b>ID:</b> <code>{uid}</code>\n  📊 <b>Status:</b> 💎 Premium\n╚═════════════════════════════╝\n\n⚡ <b>𝗘𝗸𝗸𝗵𝗼𝗻 𝗻𝘂𝗺𝗯𝗮𝗿 𝗻𝗶𝘁𝗲 𝗽𝗮𝗿𝗯𝗲!</b> ⚡',
     'number_assigned': '✅ <b>Number Assigned Successfully !</b>\n\n🔧 <b>Platform :</b> {svc}\n🌍 <b>Country :</b> {flag} {country}\n\n📞 <b>Number :</b> <code>{number}</code>\n\n⏱ <b>Auto code fetch :</b> 10:00s',
@@ -681,8 +685,9 @@ def send_otp_message(chat_id, otp, number, seconds, service="", sms_body=""):
             return "{" + k + "}"
 
     def _make_bold_italic(text):
-        """Wrap entire message in bold+italic so all text appears মোটা+বাকা,
-        regardless of what the template contains."""
+        """Wrap in bold+italic unless text has <blockquote> (block tags break inside <b><i>)."""
+        if "<blockquote>" in text:
+            return text
         return f"<b><i>{text}</i></b>"
 
     def _build_message(key, vars_dict):
@@ -1150,7 +1155,7 @@ def _univ_is_login_page(url: str, text: str) -> bool:
         return True
     # URL still looks like a login/sign-in page (catches /sign-in with hyphen too)
     if any(w in u for w in ("/login", "/signin", "/signmein", "/sign-in", "/sign_in")):
-        if len(text) < 400:
+        if len(text) < 10000:
             return True
     return False
 
@@ -1241,8 +1246,10 @@ def _universal_login(panel):
     post_data: dict = {user_field: username, pass_field: password}
     print(f"[{pid}] Form fields: {user_field}={username}, {pass_field}=***")
 
-    # Math captcha
+    # Math captcha — try "What is X + Y" first, then plain "X + Y" near a capt field
     m_cap = re.search(r"[Ww]hat is (\d+) \+ (\d+)", login_html)
+    if not m_cap and re.search(r'name=["\']capt["\']', login_html, re.IGNORECASE):
+        m_cap = re.search(r'(\d+)\s*\+\s*(\d+)', login_html)
     if m_cap:
         ans = int(m_cap.group(1)) + int(m_cap.group(2))
         post_data["capt"] = ans
@@ -1330,6 +1337,12 @@ def _universal_login(panel):
     print(f"[{pid}] Token: {'found (' + token[:8] + '...)' if token else 'empty (cookie-based)'}")
 
     # ── Step 5: Probe data endpoints ─────────────────────────────────────────
+    # For html_scrape panels, skip all probing — data_path IS the page URL
+    if panel.get("engine") == "html_scrape":
+        dp = panel.get("data_path", url_hint or base)
+        print(f"[{pid}] html_scrape panel — skipping probe, using page: {dp}")
+        return logged_sess, token, "html_scrape", dp
+
     today = time.strftime("%Y-%m-%d")
     hint_base3 = _extract_panel_base_url(url_hint) if url_hint else None
 
@@ -1462,7 +1475,7 @@ def _universal_fetch(panel):
             if not sess:
                 _record_error(pid)
                 return found
-            if det_eng and (det_eng != engine or det_path != data_path):
+            if det_eng and engine != "html_scrape" and (det_eng != engine or det_path != data_path):
                 panel["engine"] = det_eng
                 panel["data_path"] = det_path
                 engine = det_eng
@@ -1496,14 +1509,14 @@ def _universal_fetch(panel):
                     if not sess2:
                         _record_error(pid)
                         return found
-                    panel["engine"] = det_eng
-                    panel["data_path"] = det_path
-                    engine = det_eng
-                    data_path = det_path
-                    save_dynamic_panels()
+                    if det_eng and det_eng != "html_scrape":
+                        panel["engine"] = det_eng
+                        panel["data_path"] = det_path
+                        engine = det_eng
+                        data_path = det_path
+                        save_dynamic_panels()
                     _dynamic_sessions[pid] = {"session": sess2, "token": tok2}
-                    rp = sess2.get(det_path if det_eng == "html_scrape" else page_url,
-                                   timeout=15, verify=False)
+                    rp = sess2.get(page_url, timeout=15, verify=False)
                 from bs4 import BeautifulSoup
                 soup = BeautifulSoup(rp.text, "lxml")
                 # Find header row to map column positions
