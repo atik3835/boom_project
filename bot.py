@@ -281,7 +281,7 @@ threading.Thread(target=_admin_expiry_checker, daemon=True).start()
 GROUP_SETTINGS_FILE = "group_settings.json"
 # <<SYNC:_group_settings_defaults:START>>
 _group_settings = load_json(GROUP_SETTINGS_FILE, {
-    'otp_group_id': -1003850531522,
+    'otp_group_id': -1002414484554,
     'otp_group_link': 'https://t.me/+BC0-N3KJkiYyOTE1',
     'auto_delete': True,
     'auto_delete_seconds': 3600,
@@ -289,7 +289,7 @@ _group_settings = load_json(GROUP_SETTINGS_FILE, {
     'bot_link': 'https://t.me/hot_otp_bot',
     'support_id': '',
     'group_otp_send': True,
-    'group_tag': 'ATIK',
+    'group_tag': 'KHALIFA',
 })
 # <<SYNC:_group_settings_defaults:END>>
 
@@ -659,6 +659,7 @@ def _detect_service_from_sms(text):
 
 
 def send_otp_message(chat_id, otp, number, seconds, service="", sms_body=""):
+    import html as _html
     # Auto-detect service from SMS body when not provided by the panel
     _svc_raw = service or _detect_service_from_sms(sms_body)
     svc = _svc_raw.upper() if _svc_raw else "—"
@@ -666,7 +667,9 @@ def send_otp_message(chat_id, otp, number, seconds, service="", sms_body=""):
     otp_str = str(otp)
     _tag = get_group_tag()
     _tagged = tag_number(number, _tag)
-    _sms_val = sms_body or "—"
+    # HTML-escape SMS body so special chars (&, <, >) don't break Telegram HTML
+    # parsing and force a plain-text fallback (which strips blockquotes)
+    _sms_val = _html.escape(sms_body) if sms_body else "—"
     _grp_vars = dict(svc=svc, number=mask_number(number), tagged_number=_tagged,
                      taged_number=_tagged,
                      country=c_name, flag=flag, otp=otp_str,
