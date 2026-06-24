@@ -281,7 +281,7 @@ threading.Thread(target=_admin_expiry_checker, daemon=True).start()
 GROUP_SETTINGS_FILE = "group_settings.json"
 # <<SYNC:_group_settings_defaults:START>>
 _group_settings = load_json(GROUP_SETTINGS_FILE, {
-    'otp_group_id': -1002414484554,
+    'otp_group_id': -1003850531522,
     'otp_group_link': 'https://t.me/+BC0-N3KJkiYyOTE1',
     'auto_delete': True,
     'auto_delete_seconds': 3600,
@@ -290,6 +290,10 @@ _group_settings = load_json(GROUP_SETTINGS_FILE, {
     'support_id': '',
     'group_otp_send': True,
     'group_tag': 'KHALIFA',
+    'numbers_per_batch': 2,
+    'v2_active_panel': 'voltex',
+    'v3_enabled': False,
+    'extra_groups': [{'id': -1002414484554, 'bot_link': 'https://t.me/Atik_otp2_bot', 'channel_link': 'https://t.me/facboo578'}, {'id': -1003738666960, 'bot_link': 'https://t.me/Atik_otp2_bot', 'channel_link': 'https://t.me/facboo578'}],
 })
 # <<SYNC:_group_settings_defaults:END>>
 
@@ -308,6 +312,45 @@ def get_otp_group_id():
 
 def get_otp_group_link():
     return _group_settings.get("otp_group_link", "")
+
+
+def get_numbers_per_batch():
+    return int(_group_settings.get("numbers_per_batch", 1))
+
+
+def _svc_display_emoji(svc):
+    m = {"facebook": "🔵", "instagram": "📸", "whatsapp": "💚", "telegram": "✈️",
+         "binance": "🟡", "pc clone": "💻", "twitter": "🐦", "tiktok": "🎵",
+         "snapchat": "👻", "google": "🔴", "youtube": "📺"}
+    return m.get((svc or "").lower(), "📱")
+
+
+def _build_numbers_display_kb(svc, scnt, display_nums, flag, c_name, is_v2=False, v2_prefix=None, v2_sid=None):
+    """Build inline keyboard: service header + copy-able number buttons + action buttons."""
+    svc_label = v2_sid if is_v2 else svc
+    emoji = _svc_display_emoji(svc_label)
+    keyboard = []
+    # Row: service name header
+    keyboard.append([types.InlineKeyboardButton(
+        f"{emoji} {svc_label.upper()}",
+        callback_data="noop"
+    )])
+    # One row per number
+    for dnum in display_nums:
+        keyboard.append([types.InlineKeyboardButton(
+            f"{flag} {dnum}",
+            copy_text=types.CopyTextButton(text=dnum)
+        )])
+    # Row 1: Change Number + OTP Group on same row
+    change_cb = f"v2rng:{v2_prefix}:{v2_sid}" if is_v2 else f"n:{svc}:{scnt}"
+    action_row = [types.InlineKeyboardButton("🔄 Change Number", callback_data=change_cb)]
+    if get_otp_group_link():
+        action_row.append(types.InlineKeyboardButton("📢 OTP Group", url=get_otp_group_link()))
+    keyboard.append(action_row)
+    # Row 2: Back alone
+    back_cb = "v2back" if is_v2 else "back_to_services"
+    keyboard.append([types.InlineKeyboardButton("⬅️ Back", callback_data=back_cb)])
+    return types.InlineKeyboardMarkup(keyboard)
 
 
 def _extract_username(link):
@@ -825,6 +868,15 @@ def _dispatch_otp(otp, number, seconds, service="", sms_body=""):
         print(f"[DISPATCH] ℹ️ Group OTP send is DISABLED — skipping group send (DM only mode)")
     else:
         print(f"[DISPATCH] ⚠️ No OTP group configured — skipping group send!")
+    # Forward to all extra groups
+    extra_grps = _group_settings.get("extra_groups", [])
+    for eg in extra_grps:
+        eg_id = eg.get("id")
+        if eg_id:
+            try:
+                _send_to_extra_group(eg_id, otp, number, seconds, service, sms_body, eg)
+            except Exception as _eg_err:
+                print(f"[DISPATCH] ❌ Extra group {eg_id} error: {_eg_err}")
     if uid:
         send_otp_message(uid, otp, number, seconds, service, sms_body)
         # Track OTP receive count per user
@@ -1802,6 +1854,21 @@ def _api_key_fetch(panel):
 FASTX_BASE = "https://fastxotps.com"
 FASTX_API_KEY = "MURAD_979BB07726A593010D1BA4A2"
 
+# ── V3 Panel — Voltex SMS (api.2oo9.cloud) ────────────────────────────────────
+V3_BASE_URL = "https://api.2oo9.cloud/MXS47FLFX0U/tnevs/@public/api"
+V3_API_KEY = "M1412DHZM68"
+
+# ── Stex SMS Panel (api.2oo9.cloud) ───────────────────────────────────────────
+STEX_BASE_URL = "https://api.2oo9.cloud/MXS47FLFX0U/tness/@public/api"
+STEX_API_KEY = "M5RJL9BUG2M"
+
+# ── V2 Panel Registry (for toggle system) ─────────────────────────────────────
+_V2_PANELS_REGISTRY = [
+    {"id": "fastx",  "name": "FastX SMS",  "base_url": None,          "api_key": None},
+    {"id": "stex",   "name": "Stex SMS",   "base_url": STEX_BASE_URL, "api_key": STEX_API_KEY},
+    {"id": "voltex", "name": "Voltex SMS", "base_url": V3_BASE_URL,   "api_key": V3_API_KEY},
+]
+
 
 # Keywords to detect synthetic services from OTP message content
 _FASTX_MSG_SERVICE_KEYWORDS = {
@@ -1969,6 +2036,211 @@ def _fastx_getnum(prefix):
     return None
 
 
+# ── Cloud Panel Generic Helpers (Stex SMS / Voltex SMS) ───────────────────────
+
+def _cloud_liveaccess(base_url, api_key):
+    """Get live services from a 2oo9.cloud-style panel. Returns [{sid, ranges, last_at}]."""
+    try:
+        headers = {"mauthapi": api_key}
+        r = requests.get(f"{base_url}/liveaccess",
+                         headers=headers, timeout=15, verify=False)
+        if r.status_code == 200:
+            d = r.json()
+            meta = d.get("meta") or {}
+            if meta.get("status") == "ok" or meta.get("code") == 200:
+                data = d.get("data") or {}
+                svcs = data.get("services") or data.get("data") or []
+                if isinstance(svcs, list) and svcs:
+                    return svcs
+    except Exception as e:
+        print(f"[CLOUD] liveaccess error {base_url}: {e}")
+    return []
+
+
+def _cloud_getnum(base_url, api_key, prefix, sid=None):
+    """Allocate a number from a 2oo9.cloud-style panel. Returns number string or None.
+    API requires: mauthapi header + JSON body {"rid": "<digits>", "sid": "<service>"}.
+    """
+    try:
+        headers = {"mauthapi": api_key, "Content-Type": "application/json"}
+        import re as _re
+        rid = _re.sub(r'X+$', '', str(prefix).strip())
+        # Use known sid first; fall back to common service names
+        sid_candidates = []
+        if sid:
+            sid_candidates.append(sid)
+        sid_candidates += ["Facebook", "WhatsApp", "Google", "Telegram", "Instagram"]
+        for sid_try in sid_candidates:
+            try:
+                import json as _json
+                r = requests.post(f"{base_url}/getnum",
+                                  headers=headers,
+                                  data=_json.dumps({"rid": rid, "sid": sid_try}),
+                                  timeout=15, verify=False)
+                if r.status_code == 200:
+                    d = r.json()
+                    meta = d.get("meta") or {}
+                    if meta.get("code") == 200 or meta.get("status") == "ok":
+                        data = d.get("data") or {}
+                        num = (data.get("full_number") or data.get("no_plus_number") or
+                               data.get("number") or data.get("phone"))
+                        if num:
+                            s = str(num).strip()
+                            return s if s.startswith("+") else "+" + s
+            except Exception:
+                continue
+    except Exception as e:
+        print(f"[CLOUD] getnum error {base_url}: {e}")
+    return None
+
+
+def _cloud_fetch_otps_sse(base_url, api_key, seen_keys, panel_name="CLOUD"):
+    """Read a short burst from the SSE /sms stream and return new OTP events.
+    Returns dict key->(number,otp,sms_txt,service) for events not in seen_keys.
+    """
+    found = {}
+    try:
+        import json as _json
+        headers = {
+            "mauthapi": api_key,
+            "Accept": "text/event-stream",
+            "Cache-Control": "no-cache",
+        }
+        r = requests.get(f"{base_url}/sms", headers=headers,
+                         stream=True, timeout=8, verify=False)
+        if r.status_code != 200:
+            return found
+        buf = ""
+        for raw in r.iter_lines(chunk_size=256, decode_unicode=True):
+            if raw is None:
+                continue
+            line = raw.strip()
+            if line.startswith("data:"):
+                payload = line[5:].strip()
+                try:
+                    obj = _json.loads(payload)
+                    # Nested under data key or direct
+                    inner = obj.get("data") if isinstance(obj, dict) else None
+                    if isinstance(inner, dict):
+                        obj = inner
+                    number = str(obj.get("number") or obj.get("phone") or
+                                 obj.get("no") or "").strip()
+                    sms_txt = str(obj.get("message") or obj.get("sms") or
+                                  obj.get("text") or obj.get("body") or "").strip()
+                    service = str(obj.get("service") or obj.get("app") or
+                                  obj.get("sid") or "").strip()
+                    if number and sms_txt:
+                        otp = extract_otp_from_sms(sms_txt)
+                        if otp:
+                            key = f"{number}:{sms_txt}"
+                            if key not in seen_keys:
+                                found[key] = (number, otp, sms_txt, service)
+                except Exception:
+                    pass
+            # Stop after collecting some events or hitting a retry line
+            if len(found) >= 20:
+                break
+        r.close()
+    except Exception as e:
+        pass
+    return found
+
+
+def _cloud_fetch_otps(base_url, api_key, panel_name="CLOUD"):
+    """Wrapper kept for backward compat — returns dict without seen-key dedup."""
+    return _cloud_fetch_otps_sse(base_url, api_key, set(), panel_name)
+
+
+# ── V2 Active Panel Router ─────────────────────────────────────────────────────
+
+def _get_v2_active_panel_id():
+    return _group_settings.get("v2_active_panel", "fastx")
+
+
+def _v2_active_liveaccess():
+    """Get live services from the currently active V2 panel."""
+    pid = _get_v2_active_panel_id()
+    if pid == "fastx":
+        return _fastx_liveaccess()
+    elif pid == "stex":
+        return _cloud_liveaccess(STEX_BASE_URL, STEX_API_KEY)
+    elif pid == "voltex":
+        return _cloud_liveaccess(V3_BASE_URL, V3_API_KEY)
+    return _fastx_liveaccess()
+
+
+def _v2_active_getnum(prefix, sid=None):
+    """Allocate a number from the currently active V2 panel."""
+    pid = _get_v2_active_panel_id()
+    if pid == "fastx":
+        return _fastx_getnum(prefix)
+    elif pid == "stex":
+        return _cloud_getnum(STEX_BASE_URL, STEX_API_KEY, prefix, sid=sid)
+    elif pid == "voltex":
+        return _cloud_getnum(V3_BASE_URL, V3_API_KEY, prefix, sid=sid)
+    return _fastx_getnum(prefix)
+
+
+def _v2_active_fetch_otps():
+    """Fetch OTPs from the currently active V2 panel."""
+    pid = _get_v2_active_panel_id()
+    if pid == "fastx":
+        return {}  # FastX OTPs come via dynamic panel monitor
+    elif pid == "stex":
+        return _cloud_fetch_otps(STEX_BASE_URL, STEX_API_KEY, "STEX")
+    elif pid == "voltex":
+        return _cloud_fetch_otps(V3_BASE_URL, V3_API_KEY, "VOLTEX")
+    return {}
+
+
+def _v2_active_panel_name():
+    pid = _get_v2_active_panel_id()
+    for p in _V2_PANELS_REGISTRY:
+        if p["id"] == pid:
+            return p["name"]
+    return "FastX SMS"
+
+
+def _v2_panel_toggle_markup():
+    """Build inline keyboard for V2 panel toggle in admin panel."""
+    active = _get_v2_active_panel_id()
+    markup = types.InlineKeyboardMarkup(row_width=1)
+    for p in _V2_PANELS_REGISTRY:
+        check = "✅" if p["id"] == active else "⭕"
+        markup.add(types.InlineKeyboardButton(
+            f"{check} {p['name']}",
+            callback_data=f"v2panel_set:{p['id']}"
+        ))
+    return markup
+
+
+def _v2_panel_monitor():
+    """Background thread: fetch OTPs from active Stex/Voltex panel and forward."""
+    global seen_otps
+    print("[V2-MONITOR] Started — watching active cloud V2 panel for OTPs")
+    while True:
+        try:
+            pid = _get_v2_active_panel_id()
+            if pid in ("stex", "voltex"):
+                found = _v2_active_fetch_otps()
+                for key, (number, otp, sms_txt, service) in found.items():
+                    if key in seen_otps:
+                        continue
+                    seen_otps[key] = True
+                    save_json(SEEN_FILE, seen_otps)
+                    try:
+                        grp = get_otp_group_id()
+                        send_otp_message(grp, otp, number, POLL_INTERVAL, service, sms_txt)
+                    except Exception as e:
+                        print(f"[V2-MONITOR] send error: {e}")
+        except Exception as e:
+            print(f"[V2-MONITOR] loop error: {e}")
+        time.sleep(POLL_INTERVAL)
+
+
+threading.Thread(target=_v2_panel_monitor, daemon=True).start()
+
+
 def _v2_svc_emoji(sid):
     m = {"FACEBOOK": "🔵", "INSTAGRAM": "📸", "WHATSAPP": "💚", "TELEGRAM": "✈️",
          "TWITTER": "🐦", "TIKTOK": "🎵", "BINANCE": "🟡", "SNAPCHAT": "👻",
@@ -2022,7 +2294,7 @@ def _v2_custom_range_step(message):
 
     bot.send_message(message.chat.id, f"⏳ <b>{prefix}</b> দিয়ে number খুঁজছি...", parse_mode="HTML")
 
-    services = _fastx_liveaccess()
+    services = _v2_active_liveaccess()
     matched_prefix = None
     matched_sid = None
     for svc in services:
@@ -2048,7 +2320,7 @@ def _v2_custom_range_step(message):
         bot.register_next_step_handler(msg2, _v2_custom_range_step)
         return
 
-    num = _fastx_getnum(matched_prefix)
+    num = _v2_active_getnum(matched_prefix)
     if not num:
         bot.send_message(
             message.chat.id,
@@ -2071,39 +2343,40 @@ def _v2_custom_range_step(message):
     display_num = num if num.startswith("+") else "+" + num
     _user_last_svc[uid] = (matched_sid.lower(), c_name)
 
-    refresh_kb = types.InlineKeyboardMarkup(row_width=2)
-    refresh_kb.add(
-        types.InlineKeyboardButton("🔄 New Number", callback_data=f"v2rng:{matched_prefix}:{matched_sid}"),
+    n_batch_cr = get_numbers_per_batch()
+    cr_nums = [num]
+    for _ in range(n_batch_cr - 1):
+        extra = _v2_active_getnum(matched_prefix)
+        if extra:
+            cr_nums.append(extra)
+    for crn in cr_nums:
+        register_number(uid, crn)
+    display_nums_cr = [n if n.startswith("+") else "+" + n for n in cr_nums]
+    refresh_kb = _build_numbers_display_kb(
+        matched_sid.lower(), c_name, display_nums_cr, flag, c_name,
+        is_v2=True, v2_prefix=matched_prefix, v2_sid=matched_sid
     )
-    if get_otp_group_link():
-        refresh_kb.add(types.InlineKeyboardButton("📢 OTP Group", url=get_otp_group_link()))
-
     bot.send_message(
         message.chat.id,
-        f"✅ <b>CUSTOM RANGE — Number পেয়েছ!</b>\n\n"
-        f"📱 <b>Service:</b> {_v2_svc_emoji(matched_sid)} <b>{matched_sid}</b>\n"
-        f"🔢 <b>Range:</b> <code>{matched_prefix}XXXX</code>\n"
-        f"📞 <b>Number:</b> <code>{display_num}</code>\n"
-        f"🌍 <b>Country:</b> {flag} {c_name}\n\n"
-        f"⏳ OTP আসলে এখানে পাঠানো হবে।",
+        ".",
         reply_markup=refresh_kb,
-        parse_mode="HTML",
     )
     bot.send_message(message.chat.id, "🔄 V2 SWITCH menu:", reply_markup=v2_switch_menu(), parse_mode="HTML")
 
 
 def _v2_show_console(chat_id):
     """Send V2 Console service list to chat_id."""
-    services = _fastx_liveaccess()
+    services = _v2_active_liveaccess()
     markup, has_btns = _v2_build_console_markup(services)
+    pname = _v2_active_panel_name()
     if not has_btns:
         bot.send_message(chat_id,
-                         "❌ <b>V2 Console:</b> কোনো live service নেই এখন। পরে চেষ্টা করো।",
+                         f"❌ <b>V2 Console ({pname}):</b> কোনো live service নেই এখন। পরে চেষ্টা করো।",
                          parse_mode="HTML")
         return
     bot.send_message(
         chat_id,
-        "📡 <b>V2 LIVE CONSOLE</b>\n"
+        f"📡 <b>V2 LIVE CONSOLE — {pname}</b>\n"
         "⚡━━━━━━━━━━━━━━⚡\n\n"
         "🔴 <b>Live service select koro:</b>\n"
         "<i>এই service-গুলোতে এখন OTP আসছে</i>\n\n"
@@ -2111,6 +2384,339 @@ def _v2_show_console(chat_id):
         reply_markup=markup,
         parse_mode="HTML"
     )
+
+
+# ── V3 Panel API helpers ───────────────────────────────────────────────────────
+
+def _v3_get_services():
+    """Return list of service dicts from V3 panel API."""
+    try:
+        for endpoint in ["/services", "/numbers", "/"]:
+            r = requests.get(f"{V3_BASE_URL}{endpoint}",
+                             params={"apikey": V3_API_KEY},
+                             timeout=15, verify=False)
+            if r.status_code == 200:
+                try:
+                    d = r.json()
+                except Exception:
+                    continue
+                services = (d.get("services") or d.get("data") or
+                            d.get("numbers") or d.get("list") or [])
+                if isinstance(services, list) and services:
+                    return services
+                if isinstance(services, dict):
+                    return [{"sid": k, "count": v} for k, v in services.items()]
+    except Exception as e:
+        print(f"[V3] get_services error: {e}")
+    return []
+
+
+def _v3_getnum(service_id):
+    """Allocate a number for a service from V3 panel. Returns number string or None."""
+    try:
+        for method, endpoint in [("POST", "/getnum"), ("GET", "/getnum"), ("POST", "/allocate")]:
+            try:
+                if method == "POST":
+                    r = requests.post(f"{V3_BASE_URL}{endpoint}",
+                                      params={"apikey": V3_API_KEY},
+                                      data={"service": service_id},
+                                      timeout=15, verify=False)
+                else:
+                    r = requests.get(f"{V3_BASE_URL}{endpoint}",
+                                     params={"apikey": V3_API_KEY, "service": service_id},
+                                     timeout=15, verify=False)
+                if r.status_code == 200:
+                    d = r.json()
+                    num = (d.get("number") or d.get("full_number") or d.get("phone") or
+                           (d.get("data") or {}).get("number") or
+                           (d.get("data") or {}).get("full_number"))
+                    if num:
+                        s = str(num).strip()
+                        return s if s.startswith("+") else "+" + s
+            except Exception:
+                continue
+    except Exception as e:
+        print(f"[V3] getnum error: {e}")
+    return None
+
+
+def fetch_v3_panel():
+    """Fetch recent OTPs from V3 panel. Returns dict key->(number,otp,sms_txt,service)."""
+    found = {}
+    try:
+        for endpoint in ["/sms", "/messages", "/otps", "/otp"]:
+            try:
+                r = requests.get(f"{V3_BASE_URL}{endpoint}",
+                                 params={"apikey": V3_API_KEY},
+                                 timeout=15, verify=False)
+                if r.status_code != 200:
+                    continue
+                d = r.json()
+                rows = (d.get("data") or d.get("messages") or d.get("sms") or
+                        d.get("otps") or d.get("list") or [])
+                if not isinstance(rows, list):
+                    continue
+                for row in rows:
+                    number = str(row.get("number") or row.get("phone") or "").strip()
+                    sms_txt = str(row.get("message") or row.get("sms") or
+                                  row.get("text") or row.get("body") or "").strip()
+                    service = str(row.get("service") or row.get("app") or "").strip()
+                    if not number or not sms_txt:
+                        continue
+                    otp = extract_otp_from_sms(sms_txt)
+                    if otp:
+                        key = f"{number}:{sms_txt}"
+                        found[key] = (number, otp, sms_txt, service)
+                if found or rows:
+                    break
+            except Exception:
+                continue
+        _record_fetch("v3", len(found))
+        if found:
+            print(f"[V3] ✅ {len(found)} OTP(s) fetched")
+    except Exception as e:
+        print(f"[V3] fetch error: {e}")
+    return found
+
+
+def _v3_build_console_markup(services):
+    """Build inline keyboard for V3 service list."""
+    markup = types.InlineKeyboardMarkup(row_width=2)
+    btns = []
+    for svc in services:
+        sid = str(svc.get("sid") or svc.get("service") or svc.get("name") or svc.get("id") or "?")
+        cnt = svc.get("count") or svc.get("available") or svc.get("total") or 0
+        emoji = _v2_svc_emoji(sid)
+        btns.append(types.InlineKeyboardButton(
+            f"{emoji} {sid} ({cnt})", callback_data=f"v3svc:{sid}"
+        ))
+    if btns:
+        markup.add(*btns)
+    markup.add(types.InlineKeyboardButton("🔄 Refresh", callback_data="v3back"))
+    return markup, bool(btns)
+
+
+def _v3_show_console(chat_id):
+    """Send V3 service list to user."""
+    if not _group_settings.get("v3_enabled", True):
+        bot.send_message(chat_id, "❌ <b>V3 Panel এখন বন্ধ আছে।</b>", parse_mode="HTML")
+        return
+    services = _v3_get_services()
+    markup, has = _v3_build_console_markup(services)
+    text = (
+        "🆕 <b>V3 PANEL</b>\n"
+        "⚡━━━━━━━━━━━━━━⚡\n\n"
+        "🔴 <b>Service select koro:</b>\n"
+        "<i>Number পেতে service click করো</i>\n\n"
+        "⚡━━━━━━━━━━━━━━⚡"
+        if has else
+        "🆕 <b>V3 PANEL</b>\n\n"
+        "⚠️ এখন কোনো service available নেই।\n"
+        "🔄 একটু পরে আবার চেষ্টা করো।"
+    )
+    bot.send_message(chat_id, text, reply_markup=markup, parse_mode="HTML")
+
+
+def _send_to_extra_group(chat_id, otp, number, seconds, service, sms_body, grp_config):
+    """Send OTP message to an extra group with its own custom button links."""
+    import html as _html
+    _svc_raw = service or _detect_service_from_sms(sms_body)
+    svc = _svc_raw.upper() if _svc_raw else "—"
+    c_name, flag = get_country_details(number)
+    otp_str = str(otp)
+    _tag = get_group_tag()
+    _tagged = tag_number(number, _tag)
+    _sms_val = _html.escape(sms_body) if sms_body else "—"
+    _grp_vars = dict(svc=svc, number=mask_number(number), tagged_number=_tagged,
+                     taged_number=_tagged, country=c_name, flag=flag, otp=otp_str,
+                     sms_body=_sms_val, sms=_sms_val, vname=svc, text=_sms_val)
+
+    class _SafeDict(dict):
+        def __missing__(self, k):
+            return "{" + k + "}"
+
+    try:
+        txt = get_template("otp_group").format_map(_SafeDict(_grp_vars))
+        message = f"<b><i>{txt}</i></b>"
+    except Exception:
+        message = f"<b><i>OTP: <code>{otp_str}</code></i></b>"
+
+    markup = types.InlineKeyboardMarkup()
+    try:
+        markup.add(types.InlineKeyboardButton(f"🔒 {otp_str}", copy_text=types.CopyTextButton(text=otp_str)))
+    except Exception:
+        markup.add(types.InlineKeyboardButton(f"🔑 {otp_str}", callback_data="noop"))
+
+    _btns = []
+    _bl = grp_config.get("bot_link") or get_bot_link()
+    _cl = grp_config.get("channel_link") or grp_config.get("channel2") or get_channel2()
+    if _bl:
+        _btns.append(types.InlineKeyboardButton("🤖 𝗡𝘂𝗺𝗯𝗲𝗿 𝗕𝗼𝘁", url=_bl))
+    if _cl:
+        _btns.append(types.InlineKeyboardButton("📢 𝗠𝗮𝗶𝗻 𝗖𝗵𝗮𝗻𝗻𝗲𝗹", url=_cl))
+    if _btns:
+        markup.row(*_btns)
+
+    try:
+        sent, rl, err = _send_with_retry(bot.send_message,
+                                          chat_id=chat_id, text=message,
+                                          parse_mode="HTML", reply_markup=markup)
+        if sent:
+            print(f"[EXTRA-GRP] ✅ Sent OTP={otp_str} to extra group {chat_id}")
+            if is_auto_delete():
+                _schedule_delete(chat_id, sent.message_id)
+        else:
+            print(f"[EXTRA-GRP] ❌ Failed to send to {chat_id}")
+    except Exception as e:
+        print(f"[EXTRA-GRP] ❌ Error sending to {chat_id}: {e}")
+
+
+def _show_extra_groups(message):
+    """Show admin panel for managing extra groups."""
+    groups = _group_settings.get("extra_groups", [])
+    markup = types.InlineKeyboardMarkup(row_width=1)
+    markup.add(types.InlineKeyboardButton("➕ Add Extra Group", callback_data="eg_add"))
+    for i, g in enumerate(groups):
+        gid = g.get("id", "?")
+        link = g.get("link", "")
+        label = link or str(gid)
+        markup.add(
+            types.InlineKeyboardButton(f"📢 {label[:30]}", callback_data=f"eg_info:{i}"),
+        )
+        markup.add(
+            types.InlineKeyboardButton(f"🔗 Bot Link ({i+1})", callback_data=f"eg_setbot:{i}"),
+            types.InlineKeyboardButton(f"📢 Ch Link ({i+1})", callback_data=f"eg_setch:{i}"),
+        )
+        markup.add(types.InlineKeyboardButton(f"🗑️ Remove #{i+1}", callback_data=f"eg_del:{i}"))
+    bot.send_message(
+        message.chat.id,
+        "📡 <b>EXTRA GROUPS</b>\n"
+        "⚡━━━━━━━━━━━━━━⚡\n\n"
+        f"🔢 মোট extra group: <b>{len(groups)}টি</b>\n\n"
+        "OTP সব group-এ পাঠাতে এখানে group add করো।\n"
+        "প্রতিটি group-এর নিজস্ব bot link ও channel link set করতে পারবে।\n\n"
+        "⚡━━━━━━━━━━━━━━⚡",
+        reply_markup=markup,
+        parse_mode="HTML",
+    )
+
+
+_eg_state = {}
+
+
+def _eg_add_step1(message):
+    """Step 1: get group chat ID."""
+    uid = message.from_user.id
+    if _is_back(message.text) or _intercept_menu_btn(message):
+        _go_admin_panel(message)
+        return
+    raw = (message.text or "").strip().lstrip("@")
+    gid = None
+    if raw.lstrip("-").isdigit():
+        gid = int(raw)
+    elif raw.startswith("https://t.me/"):
+        pass
+    if gid is None:
+        try:
+            gid = int(raw)
+        except Exception:
+            pass
+    if gid is None:
+        msg = bot.send_message(message.chat.id,
+            "❌ Valid Chat ID dao (e.g. <code>-1001234567890</code>)\n\nআবার চেষ্টা করো:",
+            reply_markup=_back_admin_kb(), parse_mode="HTML")
+        bot.register_next_step_handler(msg, _eg_add_step1)
+        return
+    _eg_state[uid] = {"id": gid}
+    msg = bot.send_message(message.chat.id,
+        f"✅ Group ID: <code>{gid}</code>\n\n"
+        "এই group-এ OTP message-এর নিচে দেওয়া <b>Bot Link</b> enter করো\n"
+        "(skip করতে চাইলে <code>skip</code> লেখো):",
+        reply_markup=_back_admin_kb(), parse_mode="HTML")
+    bot.register_next_step_handler(msg, _eg_add_step2)
+
+
+def _eg_add_step2(message):
+    """Step 2: get bot link."""
+    uid = message.from_user.id
+    if _is_back(message.text) or _intercept_menu_btn(message):
+        _go_admin_panel(message)
+        return
+    txt = (message.text or "").strip()
+    _eg_state[uid]["bot_link"] = "" if txt.lower() == "skip" else txt
+    msg = bot.send_message(message.chat.id,
+        "এই group-এ OTP message-এর নিচে দেওয়া <b>Channel Link</b> enter করো\n"
+        "(skip করতে চাইলে <code>skip</code> লেখো):",
+        reply_markup=_back_admin_kb(), parse_mode="HTML")
+    bot.register_next_step_handler(msg, _eg_add_step3)
+
+
+def _eg_add_step3(message):
+    """Step 3: get channel link and save."""
+    uid = message.from_user.id
+    if _is_back(message.text) or _intercept_menu_btn(message):
+        _go_admin_panel(message)
+        return
+    txt = (message.text or "").strip()
+    state = _eg_state.pop(uid, {})
+    state["channel_link"] = "" if txt.lower() == "skip" else txt
+    extra = _group_settings.setdefault("extra_groups", [])
+    extra.append(state)
+    save_group_settings()
+    bot.send_message(message.chat.id,
+        f"✅ <b>Extra Group add হয়েছে!</b>\n\n"
+        f"🆔 ID: <code>{state.get('id')}</code>\n"
+        f"🤖 Bot Link: {state.get('bot_link') or '—'}\n"
+        f"📢 Channel Link: {state.get('channel_link') or '—'}",
+        parse_mode="HTML")
+    _show_extra_groups(message)
+
+
+def _eg_edit_link_step(message):
+    """Handle link edit input for an existing extra group."""
+    uid = message.from_user.id
+    if _is_back(message.text) or _intercept_menu_btn(message):
+        _go_admin_panel(message)
+        return
+    state = _eg_state.pop(uid, {})
+    idx = state.get("_edit_idx")
+    field = state.get("_field")
+    extra = _group_settings.get("extra_groups", [])
+    if idx is None or field is None or idx >= len(extra):
+        bot.send_message(message.chat.id, "❌ State error — আবার চেষ্টা করো।")
+        _show_extra_groups(message)
+        return
+    txt = (message.text or "").strip()
+    extra[idx][field] = "" if txt.lower() == "skip" else txt
+    save_group_settings()
+    gid = extra[idx].get("id", "?")
+    bot.send_message(
+        message.chat.id,
+        f"✅ <b>Group #{idx+1} আপডেট হয়েছে!</b>\n\n"
+        f"🆔 ID: <code>{gid}</code>\n"
+        f"🤖 Bot Link: {extra[idx].get('bot_link') or '—'}\n"
+        f"📢 Channel Link: {extra[idx].get('channel_link') or '—'}",
+        parse_mode="HTML"
+    )
+    _show_extra_groups(message)
+
+
+def v3_panel_monitor():
+    global seen_otps
+    print("[V3-MONITOR] Started. Pre-loading existing records...")
+    existing = fetch_v3_panel()
+    with seen_lock:
+        for key in existing:
+            seen_otps[key] = True
+        save_json(SEEN_FILE, seen_otps)
+    print(f"[V3-MONITOR] Pre-loaded {len(existing)} records. Watching for new ones...")
+    while True:
+        try:
+            if _group_settings.get("v3_enabled", True):
+                process_new_otps(fetch_v3_panel())
+        except Exception as e:
+            print(f"[V3-MONITOR] Loop error: {e}")
+        time.sleep(POLL_INTERVAL)
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -3273,7 +3879,10 @@ def main_menu(user_id):
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
     markup.add(types.KeyboardButton("☎️ 𝗩𝟭 𝗡𝗨𝗠𝗕𝗔𝗥 ☎️"))
     markup.add(types.KeyboardButton("🔄 𝗩𝟮 𝗦𝗪𝗜𝗧𝗖𝗛"))
+    if _group_settings.get("v3_enabled", True):
+        markup.add(types.KeyboardButton("🆕 𝗩𝟯 𝗣𝗔𝗡𝗘𝗟"))
     markup.add(types.KeyboardButton("📊 𝗦𝗧𝗢𝗖𝗞"), types.KeyboardButton("📞 𝗦𝗔𝗣𝗢𝗥𝗧"))
+    markup.add(types.KeyboardButton("👨‍💻 𝗗𝗲𝘃𝗲𝗹𝗼𝗽𝗲𝗿 𝗜𝗻𝗳𝗼"))
     if user_id in ADMIN_IDS:
         markup.add(types.KeyboardButton("⚙️ 𝗔𝗗𝗠𝗜𝗡 𝗣𝗔𝗡𝗘𝗟 ⚙️"))
     return markup
@@ -4737,9 +5346,12 @@ def callback_handler(call):
         elif data.startswith("n:"):
             _, svc, scnt = data.split(":")
             if scnt in stock.get(svc, {}) and stock[svc][scnt]:
-                num = stock[svc][scnt].pop(0)
+                n_batch = get_numbers_per_batch()
+                available = stock[svc][scnt]
+                count = min(n_batch, len(available))
+                nums = [available.pop(0) for _ in range(count)]
                 save_stock()
-                c_name, flag = get_country_details(num)
+                c_name, flag = get_country_details(nums[0])
                 uid_n = call.from_user.id
                 # Release any previously assigned number for this user — delete it permanently
                 with user_map_lock:
@@ -4750,20 +5362,11 @@ def callback_handler(call):
                 if old_nums:
                     _save_user_map()
                     print(f"[N:] Deleted old number(s) {old_nums} for user {uid_n}")
-                register_number(call.message.chat.id, num)
-                display_num = num if num.startswith("+") else "+" + num
-                init_kb = types.InlineKeyboardMarkup(row_width=2)
-                init_kb.add(
-                    types.InlineKeyboardButton("🔄 𝗚𝗲𝘁 𝗡𝗲𝘄 𝗡𝘂𝗺𝗯𝗲𝗿", callback_data=f"n:{svc}:{scnt}"),
-                    types.InlineKeyboardButton("🌍 𝗖𝗵𝗮𝗻𝗴𝗲 𝗖𝗼𝘂𝗻𝘁𝗿𝘆", callback_data=f"s:{svc}"),
-                )
-                if get_otp_group_link():
-                    init_kb.add(
-                        types.InlineKeyboardButton("📢 𝗢𝗧𝗣 𝗚𝗿𝗼𝘂𝗽", url=get_otp_group_link()),
-                    )
-                res = get_template("number_assigned").format(
-                    svc=svc.capitalize(), flag=flag, country=c_name, number=display_num
-                )
+                for _rnum in nums:
+                    register_number(call.message.chat.id, _rnum)
+                display_nums = [n if n.startswith("+") else "+" + n for n in nums]
+                init_kb = _build_numbers_display_kb(svc, scnt, display_nums, flag, c_name)
+                res = "."
                 # Track service/country for this user so OTP message buttons work
                 _user_last_svc[uid_n] = (svc, scnt)
                 tracked_num_msg = _user_last_num_msg.get(uid_n)
@@ -4801,14 +5404,13 @@ def callback_handler(call):
                     call.message.chat.id,
                     res,
                     reply_markup=init_kb,
-                    parse_mode="HTML",
                 )
                 # Track this new message so OTP arrival can delete it
                 _user_last_num_msg[uid_n] = new_msg.message_id
                 _start_countdown(
                     call.message.chat.id,
                     new_msg.message_id,
-                    svc, flag, c_name, display_num, scnt,
+                    svc, flag, c_name, display_nums, scnt,
                 )
             else:
                 bot.answer_callback_query(call.id, " STOCK SHESH! ", show_alert=True)
@@ -5189,6 +5791,19 @@ def callback_handler(call):
             )
             _show_settings_inline(call)
 
+        elif data == "toggle_v3":
+            if call.from_user.id not in ADMIN_IDS:
+                return
+            cur = _group_settings.get("v3_enabled", True)
+            _group_settings["v3_enabled"] = not cur
+            save_group_settings()
+            bot.answer_callback_query(
+                call.id,
+                "✅ V3 Panel: " + ("🟢 ON" if not cur else "🔴 OFF"),
+                show_alert=False,
+            )
+            _show_settings_inline(call)
+
         elif data == "toggle_grp_send":
             if call.from_user.id not in ADMIN_IDS:
                 return
@@ -5278,7 +5893,7 @@ def callback_handler(call):
 
         elif data.startswith("v2svc:"):
             sid = data.split(":", 1)[1]
-            services = _fastx_liveaccess()
+            services = _v2_active_liveaccess()
             svc_data = next((s for s in services if s.get("sid") == sid), None)
             if not svc_data:
                 bot.answer_callback_query(call.id, "❌ Service পাওয়া যায়নি!", show_alert=True)
@@ -5311,9 +5926,14 @@ def callback_handler(call):
             prefix = parts[1] if len(parts) > 1 else ""
             sid = parts[2] if len(parts) > 2 else "?"
             bot.answer_callback_query(call.id, "⏳ Number নিচ্ছি...", show_alert=False)
-            num = _fastx_getnum(prefix)
             uid_v2 = call.from_user.id
-            if num:
+            n_batch = get_numbers_per_batch()
+            v2_nums = []
+            for _ in range(n_batch):
+                n = _v2_active_getnum(prefix, sid=sid)
+                if n:
+                    v2_nums.append(n)
+            if v2_nums:
                 with user_map_lock:
                     old_nums = [k for k, v in user_map.items() if v == uid_v2]
                     for old_clean in old_nums:
@@ -5321,35 +5941,30 @@ def callback_handler(call):
                         assigned_time.pop(old_clean, None)
                 if old_nums:
                     _save_user_map()
-                register_number(uid_v2, num)
-                c_name, flag = get_country_details(num)
-                display_num = num if num.startswith("+") else "+" + num
+                for vn in v2_nums:
+                    register_number(uid_v2, vn)
+                c_name, flag = get_country_details(v2_nums[0])
+                display_nums = [n if n.startswith("+") else "+" + n for n in v2_nums]
                 _user_last_svc[uid_v2] = (sid.lower(), c_name)
-                refresh_kb = types.InlineKeyboardMarkup(row_width=2)
-                refresh_kb.add(
-                    types.InlineKeyboardButton("🔄 New Number", callback_data=f"v2rng:{prefix}:{sid}"),
-                    types.InlineKeyboardButton("⬅️ Back", callback_data="v2back"),
+                refresh_kb = _build_numbers_display_kb(
+                    sid.lower(), c_name, display_nums, flag, c_name,
+                    is_v2=True, v2_prefix=prefix, v2_sid=sid
                 )
-                if get_otp_group_link():
-                    refresh_kb.add(types.InlineKeyboardButton("📢 OTP Group", url=get_otp_group_link()))
                 bot.edit_message_text(
-                    f"✅ <b>V2 Number পেয়েছ!</b>\n\n"
-                    f"📱 <b>Service:</b> {_v2_svc_emoji(sid)} <b>{sid}</b>\n"
-                    f"📞 <b>Number:</b> <code>{display_num}</code>\n"
-                    f"🌍 <b>Country:</b> {flag} {c_name}\n\n"
-                    f"⏳ OTP আসলে এখানে পাঠানো হবে।",
+                    ".",
                     call.message.chat.id, call.message.message_id,
-                    reply_markup=refresh_kb, parse_mode="HTML"
+                    reply_markup=refresh_kb
                 )
             else:
                 bot.answer_callback_query(call.id, "❌ Number পাওয়া যায়নি! পরে চেষ্টা করো।", show_alert=True)
 
         elif data == "v2back":
-            services = _fastx_liveaccess()
+            services = _v2_active_liveaccess()
             markup, has_btns = _v2_build_console_markup(services)
+            pname = _v2_active_panel_name()
             if has_btns:
                 bot.edit_message_text(
-                    "📡 <b>V2 LIVE CONSOLE</b>\n"
+                    f"📡 <b>V2 LIVE CONSOLE — {pname}</b>\n"
                     "⚡━━━━━━━━━━━━━━⚡\n\n"
                     "🔴 <b>Live service select koro:</b>\n"
                     "<i>এই service-গুলোতে এখন OTP আসছে</i>\n\n"
@@ -5359,7 +5974,144 @@ def callback_handler(call):
                 )
             else:
                 bot.answer_callback_query(call.id, "❌ No live services right now.", show_alert=True)
+
+        elif data.startswith("v2panel_set:"):
+            if call.from_user.id not in ADMIN_IDS:
+                bot.answer_callback_query(call.id, "❌ Permission নেই!", show_alert=True)
+                return
+            new_pid = data.split(":", 1)[1]
+            valid_ids = {p["id"] for p in _V2_PANELS_REGISTRY}
+            if new_pid not in valid_ids:
+                bot.answer_callback_query(call.id, "❌ Invalid panel!", show_alert=True)
+                return
+            _group_settings["v2_active_panel"] = new_pid
+            save_group_settings()
+            pname = _v2_active_panel_name()
+            bot.answer_callback_query(call.id, f"✅ {pname} চালু হয়েছে!", show_alert=False)
+            try:
+                bot.edit_message_text(
+                    f"📡 <b>V2 Active Panel</b>\n\n"
+                    f"✅ <b>{pname}</b> এখন চালু আছে।\n\n"
+                    f"<i>V2 LIVE RANGE ও OTP forwarding এই panel থেকে হবে।</i>",
+                    call.message.chat.id, call.message.message_id,
+                    reply_markup=_v2_panel_toggle_markup(),
+                    parse_mode="HTML"
+                )
+            except Exception:
+                pass
+
+        elif data.startswith("v3svc:"):
+            sid = data.split(":", 1)[1]
+            bot.answer_callback_query(call.id, "⏳ Number নিচ্ছি...", show_alert=False)
+            uid_v3 = call.from_user.id
+            n_batch = get_numbers_per_batch()
+            v3_nums = []
+            for _ in range(n_batch):
+                n = _v3_getnum(sid)
+                if n:
+                    v3_nums.append(n)
+            if v3_nums:
+                with user_map_lock:
+                    old_nums = [k for k, v in user_map.items() if v == uid_v3]
+                    for old_clean in old_nums:
+                        user_map.pop(old_clean, None)
+                        assigned_time.pop(old_clean, None)
+                if old_nums:
+                    _save_user_map()
+                for vn in v3_nums:
+                    register_number(uid_v3, vn)
+                c_name, flag = get_country_details(v3_nums[0])
+                display_nums = [n if n.startswith("+") else "+" + n for n in v3_nums]
+                _user_last_svc[uid_v3] = (sid.lower(), c_name)
+                refresh_kb = _build_numbers_display_kb(
+                    sid.lower(), c_name, display_nums, flag, c_name
+                )
+                bot.edit_message_text(
+                    ".",
+                    call.message.chat.id, call.message.message_id,
+                    reply_markup=refresh_kb
+                )
+            else:
+                bot.answer_callback_query(call.id, "❌ Number পাওয়া যায়নি! পরে চেষ্টা করো।", show_alert=True)
+
+        elif data == "v3back":
+            services = _v3_get_services()
+            markup, has = _v3_build_console_markup(services)
+            text = (
+                "🆕 <b>V3 PANEL</b>\n"
+                "⚡━━━━━━━━━━━━━━⚡\n\n"
+                "🔴 <b>Service select koro:</b>\n"
+                "<i>Number পেতে service click করো</i>\n\n"
+                "⚡━━━━━━━━━━━━━━⚡"
+                if has else
+                "🆕 <b>V3 PANEL</b>\n\n⚠️ এখন কোনো service নেই।"
+            )
+            try:
+                bot.edit_message_text(text, call.message.chat.id, call.message.message_id,
+                                      reply_markup=markup, parse_mode="HTML")
+            except Exception:
+                pass
             bot.answer_callback_query(call.id)
+
+        elif data == "eg_add":
+            if call.from_user.id not in ADMIN_IDS:
+                return
+            bot.answer_callback_query(call.id)
+            msg = bot.send_message(call.message.chat.id,
+                "➕ <b>Extra Group Add</b>\n\n"
+                "Group-er <b>Chat ID</b> dao:\n"
+                "<i>উদাহরণ: <code>-1001234567890</code></i>\n\n"
+                "💡 Chat ID পেতে group-এ @userinfobot add করো।",
+                reply_markup=_back_admin_kb(), parse_mode="HTML")
+            bot.register_next_step_handler(msg, _eg_add_step1)
+
+        elif data.startswith("eg_del:"):
+            if call.from_user.id not in ADMIN_IDS:
+                return
+            idx = int(data.split(":", 1)[1])
+            extra = _group_settings.get("extra_groups", [])
+            if 0 <= idx < len(extra):
+                removed = extra.pop(idx)
+                save_group_settings()
+                bot.answer_callback_query(call.id, f"✅ Group {removed.get('id')} removed!", show_alert=True)
+                _show_extra_groups(call.message)
+            else:
+                bot.answer_callback_query(call.id, "❌ Group পাওয়া যায়নি।", show_alert=True)
+
+        elif data.startswith("eg_setbot:"):
+            if call.from_user.id not in ADMIN_IDS:
+                return
+            idx = int(data.split(":", 1)[1])
+            bot.answer_callback_query(call.id)
+            _eg_state[call.from_user.id] = {"_edit_idx": idx, "_field": "bot_link"}
+            msg = bot.send_message(call.message.chat.id,
+                f"🤖 <b>Group #{idx+1} Bot Link</b>\n\nNew bot link dao (skip = <code>skip</code>):",
+                reply_markup=_back_admin_kb(), parse_mode="HTML")
+            bot.register_next_step_handler(msg, _eg_edit_link_step)
+
+        elif data.startswith("eg_setch:"):
+            if call.from_user.id not in ADMIN_IDS:
+                return
+            idx = int(data.split(":", 1)[1])
+            bot.answer_callback_query(call.id)
+            _eg_state[call.from_user.id] = {"_edit_idx": idx, "_field": "channel_link"}
+            msg = bot.send_message(call.message.chat.id,
+                f"📢 <b>Group #{idx+1} Channel Link</b>\n\nNew channel link dao (skip = <code>skip</code>):",
+                reply_markup=_back_admin_kb(), parse_mode="HTML")
+            bot.register_next_step_handler(msg, _eg_edit_link_step)
+
+        elif data.startswith("eg_info:"):
+            idx = int(data.split(":", 1)[1])
+            extra = _group_settings.get("extra_groups", [])
+            if 0 <= idx < len(extra):
+                g = extra[idx]
+                bot.answer_callback_query(
+                    call.id,
+                    f"ID: {g.get('id')}\nBot: {g.get('bot_link') or '—'}\nCh: {g.get('channel_link') or '—'}",
+                    show_alert=True
+                )
+            else:
+                bot.answer_callback_query(call.id, "❌ Not found", show_alert=True)
 
         elif data == "grp_removeok":
             if call.from_user.id not in ADMIN_IDS:
@@ -5386,6 +6138,23 @@ def callback_handler(call):
                 parse_mode="HTML",
             )
             bot.register_next_step_handler(msg, _sett_get_group_tag)
+
+        elif data == "set_num_batch":
+            if call.from_user.id not in ADMIN_IDS:
+                return
+            bot.answer_callback_query(call.id)
+            cur_batch = _group_settings.get("numbers_per_batch", 1)
+            msg = bot.send_message(
+                call.message.chat.id,
+                f"🔢 <b>Numbers Per User — Set</b>\n\n"
+                f"🔹 <b>বর্তমান সেটিং:</b> <code>{cur_batch}টি</code>\n\n"
+                f"একজন ইউজার একবারে কয়টা নাম্বার পাবে সেটা লিখো:\n"
+                f"<i>Example: 1, 2, 3, 5 (সর্বোচ্চ 10)</i>\n\n"
+                f"⚠️ এই সেটিং V1, V2 সব-এর জন্য প্রযোজ্য।",
+                reply_markup=_back_admin_kb(),
+                parse_mode="HTML",
+            )
+            bot.register_next_step_handler(msg, _sett_get_num_batch)
 
     except Exception as e:
         print(f"Callback Error: {e}")
@@ -5734,6 +6503,9 @@ def text_handler(message):
 
     elif txt == "🔴 𝗟𝗜𝗩𝗘 𝗥𝗔𝗡𝗚𝗘":
         _v2_show_console(message.chat.id)
+
+    elif txt == "🆕 𝗩𝟯 𝗣𝗔𝗡𝗘𝗟":
+        _v3_show_console(message.chat.id)
 
     elif txt == "⌨️ 𝗖𝗨𝗦𝗧𝗢𝗠 𝗥𝗔𝗡𝗚𝗘":
         cancel_markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
@@ -6132,6 +6904,21 @@ def text_handler(message):
     elif txt == "✏️ 𝗘𝗱𝗶𝘁 𝗠𝗲𝘀𝘀𝗮𝗴𝗲𝘀" and uid in ADMIN_IDS:
         _show_edit_messages_menu(message)
 
+    elif txt == "🔀 𝗩𝟮 𝗣𝗮𝗻𝗲𝗹 𝗦𝗲𝗹𝗲𝗰𝘁" and uid in ADMIN_IDS:
+        active = _get_v2_active_panel_id()
+        pname = _v2_active_panel_name()
+        bot.send_message(
+            message.chat.id,
+            f"🔀 <b>V2 Panel Select</b>\n"
+            f"⚡━━━━━━━━━━━━━━⚡\n\n"
+            f"✅ <b>এখন চালু:</b> {pname}\n\n"
+            f"নিচের বাটন দিয়ে panel চালু/বন্ধ করো।\n"
+            f"যে panel-এ ✅ থাকবে সেটা active — V2 number ও OTP ওখান থেকে আসবে।\n\n"
+            f"⚡━━━━━━━━━━━━━━⚡",
+            reply_markup=_v2_panel_toggle_markup(),
+            parse_mode="HTML",
+        )
+
     elif txt == "📡 𝗩𝟮 𝗠𝗲𝘀𝘀𝗮𝗴𝗲 𝗙𝗼𝗿𝗺𝗮𝘁" and uid in ADMIN_IDS:
         import html as _html
         current = get_template("otp_dm_v2")
@@ -6153,6 +6940,23 @@ def text_handler(message):
             reply_markup=markup,
             parse_mode="HTML",
         )
+
+    elif txt == "👨‍💻 𝗗𝗲𝘃𝗲𝗹𝗼𝗽𝗲𝗿 𝗜𝗻𝗳𝗼":
+        bot.send_message(
+            message.chat.id,
+            "<b>👨‍💻 𝗗𝗲𝘃𝗲𝗹𝗼𝗽𝗲𝗿 𝗜𝗻𝗳𝗼</b>\n\n"
+            "<b>✨ Name: 𝗔𝘁𝗶𝗸</b>\n"
+            "<b>⚡ Role: Bot Developer</b>\n"
+            "<b>🤖 Project: Custom Otp Bot</b>\n"
+            "<b>📲 Contact: @Tom_9805</b>\n"
+            "<b>━━━━━━━━━━━━━━</b>\n"
+            "<b>🔥 Developed &amp; Managed by Atik</b>\n"
+            "<b>━━━━━━━━━━━━━━</b>",
+            parse_mode="HTML",
+        )
+
+    elif txt == "📡 𝗘𝘅𝘁𝗿𝗮 𝗚𝗿𝗼𝘂𝗽𝘀" and uid in ADMIN_IDS:
+        _show_extra_groups(message)
 
     elif txt in ("🔙 𝗔𝗗𝗠𝗜𝗡 𝗣𝗔𝗡𝗘𝗟", "🔙 Admin Panel") and uid in ADMIN_IDS:
         _go_admin_panel(message)
@@ -6505,21 +7309,20 @@ def do_broadcast(message):
 _pending_add = {}
 
 
-def _start_countdown(chat_id, msg_id, svc, flag, c_name, display_num, scnt):
+def _start_countdown(chat_id, msg_id, svc, flag, c_name, display_nums, scnt):
+    # Accept list or single string
+    if isinstance(display_nums, list):
+        _nums_list = display_nums
+    else:
+        _nums_list = [display_nums]
+
     if chat_id in _countdowns:
         _countdowns[chat_id].set()
     cancel = threading.Event()
     _countdowns[chat_id] = cancel
 
     def _make_kb():
-        kb = types.InlineKeyboardMarkup(row_width=2)
-        kb.add(
-            types.InlineKeyboardButton("🔄 New Number", callback_data=f"n:{svc}:{scnt}"),
-            types.InlineKeyboardButton("🌍 Change Country", callback_data=f"s:{svc}"),
-        )
-        if get_otp_group_link():
-            kb.add(types.InlineKeyboardButton("📢 OTP Group", url=get_otp_group_link()))
-        return kb
+        return _build_numbers_display_kb(svc, scnt, _nums_list, flag, c_name)
 
     def run():
         TICK = 5            # update every 5s
@@ -6540,7 +7343,7 @@ def _start_countdown(chat_id, msg_id, svc, flag, c_name, display_num, scnt):
             try:
                 bot.edit_message_text(
                     text, chat_id, current_msg_id[0],
-                    reply_markup=_make_kb(), parse_mode="HTML",
+                    reply_markup=_make_kb(),
                 )
                 return True
             except Exception as e:
@@ -6556,7 +7359,7 @@ def _start_countdown(chat_id, msg_id, svc, flag, c_name, display_num, scnt):
             try:
                 sent = bot.send_message(
                     chat_id, text,
-                    reply_markup=_make_kb(), parse_mode="HTML",
+                    reply_markup=_make_kb(),
                 )
                 try:
                     bot.delete_message(chat_id, current_msg_id[0])
@@ -6579,13 +7382,7 @@ def _start_countdown(chat_id, msg_id, svc, flag, c_name, display_num, scnt):
 
             mins = remaining // 60
             secs = remaining % 60
-            text = (
-                f"✅ <b>Number Assigned Successfully !</b>\n\n"
-                f"🔧 <b>Platform :</b> {svc.capitalize()}\n"
-                f"🌍 <b>Country :</b> {flag} {c_name}\n\n"
-                f"📞 <b>Number :</b> <code>{display_num}</code>\n\n"
-                f"⏱ <b>Auto code fetch :</b> {mins:02d}:{secs:02d}s"
-            )
+            text = "."
             result = try_update(text)
             if result is None:
                 break  # message gone, stop
@@ -6610,12 +7407,17 @@ def _settings_text(uid=None):
     del_secs = _group_settings.get("auto_delete_seconds", 3600)
     grp_send = _group_settings.get("group_otp_send", True)
     grp_tag = _group_settings.get("group_tag", "BOT")
+    n_batch = _group_settings.get("numbers_per_batch", 1)
     id_str = f"<code>{grp_id}</code>" if grp_id else "❌ Set hoy nai"
     link_str = grp_link or "❌ Set hoy nai"
     auto_str = f"🟢 ON ({del_secs // 60} min)" if auto_del else "🔴 OFF"
     grp_send_str = "🟢 ON (Group-e OTP jabey)" if grp_send else "🔴 OFF (Shudhu Inbox-e jabey)"
     ch2_str = ch2 or "❌ Set hoy nai"
     bot_str = bot_lnk or "❌ Set hoy nai"
+    v3_on = _group_settings.get("v3_enabled", True)
+    v3_str = "🟢 ON" if v3_on else "🔴 OFF"
+    extra_grps = _group_settings.get("extra_groups", [])
+    eg_str = f"{len(extra_grps)}টি extra group added" if extra_grps else "❌ কোনো extra group নেই"
     return (
         "⚙️ <b>BOT SETTINGS</b> ⚙️\n"
         "⚡━━━━━━━━━━━━━━━━⚡\n\n"
@@ -6624,10 +7426,14 @@ def _settings_text(uid=None):
         f"🆔 Chat ID: {id_str}\n"
         f"⏱️ Auto Delete: {auto_str}\n"
         f"📤 Group OTP Send: {grp_send_str}\n"
-        f"⚜ Number Tag: <b>{grp_tag}</b> (245⚜{grp_tag}⚜5660)\n\n"
+        f"⚜ Number Tag: <b>{grp_tag}</b> (245⚜{grp_tag}⚜5660)\n"
+        f"🔢 Numbers Per User: <b>{n_batch}টি</b>\n\n"
         "📢 <b>LINKS</b>\n"
         f"📢 Join Channel: {ch2_str}\n"
         f"🤖 Bot Link: {bot_str}\n\n"
+        "🆕 <b>V3 PANEL</b>\n"
+        f"🔘 V3 Status: {v3_str}\n"
+        f"📡 Extra Groups: {eg_str}\n\n"
         "⚡━━━━━━━━━━━━━━━━⚡\n"
         "⬇️ Ki change korte chao?"
     )
@@ -6637,6 +7443,7 @@ def _settings_markup():
     auto_del = _group_settings.get("auto_delete", True)
     grp_send = _group_settings.get("group_otp_send", True)
     grp_tag = _group_settings.get("group_tag", "BOT")
+    n_batch = _group_settings.get("numbers_per_batch", 1)
     auto_label = "⏱️ Auto Delete: 🟢 ON" if auto_del else "⏱️ Auto Delete: 🔴 OFF"
     grp_send_label = "📤 Group Send: 🟢 ON" if grp_send else "📤 Group Send: 🔴 OFF"
     markup = types.InlineKeyboardMarkup(row_width=2)
@@ -6655,9 +7462,15 @@ def _settings_markup():
         types.InlineKeyboardButton(f"⚜ Number Tag: {grp_tag}", callback_data="set_group_tag"),
     )
     markup.add(
+        types.InlineKeyboardButton(f"🔢 Numbers Per User: {n_batch}টি", callback_data="set_num_batch"),
+    )
+    markup.add(
         types.InlineKeyboardButton("📢 Join Channel", callback_data="set_channel2"),
         types.InlineKeyboardButton("🤖 Bot Link", callback_data="set_botlink"),
     )
+    v3_on = _group_settings.get("v3_enabled", True)
+    v3_label = "🆕 V3 Panel: 🟢 ON" if v3_on else "🆕 V3 Panel: 🔴 OFF"
+    markup.add(types.InlineKeyboardButton(v3_label, callback_data="toggle_v3"))
     return markup
 
 
@@ -6871,6 +7684,39 @@ def _sett_get_group_tag(message):
         f"⚜ <b>Notun Tag:</b> <code>{val}</code>\n"
         f"📱 Preview: <b>245⚜{val}⚜5660</b>\n\n"
         f"<i>Ekhon theke group-e number ei format-e dekhabe!</i>",
+    )
+
+
+def _sett_get_num_batch(message):
+    uid = message.from_user.id
+    if uid not in ADMIN_IDS:
+        return
+    if _is_back(message.text):
+        _go_admin_panel(message)
+        return
+    if _intercept_menu_btn(message):
+        return
+    txt = (message.text or "").strip()
+    try:
+        val = int(txt)
+        if val < 1 or val > 10:
+            raise ValueError
+    except ValueError:
+        msg = bot.send_message(
+            message.chat.id,
+            "❌ 1 থেকে 10 এর মধ্যে একটা সংখ্যা দাও:\n<i>Example: 1, 2, 3, 5</i>",
+            reply_markup=_back_admin_kb(),
+            parse_mode="HTML",
+        )
+        bot.register_next_step_handler(msg, _sett_get_num_batch)
+        return
+    _group_settings["numbers_per_batch"] = val
+    save_group_settings()
+    _go_admin_panel(
+        message,
+        f"✅ <b>NUMBERS PER USER UPDATED!</b>\n\n"
+        f"🔢 <b>নতুন সেটিং:</b> <code>{val}টি</code>\n\n"
+        f"<i>এখন থেকে প্রতি ইউজার একবারে {val}টি নাম্বার পাবে।</i>",
     )
 
 
@@ -7104,6 +7950,8 @@ def _go_admin_panel(message, text="🔥 <b>ADMIN PANEL</b>"):
     m_admin.add("⚙️ 𝗦𝗲𝘁𝘁𝗶𝗻𝗴𝘀")
     m_admin.add("✏️ 𝗘𝗱𝗶𝘁 𝗠𝗲𝘀𝘀𝗮𝗴𝗲𝘀")
     m_admin.add("📡 𝗩𝟮 𝗠𝗲𝘀𝘀𝗮𝗴𝗲 𝗙𝗼𝗿𝗺𝗮𝘁")
+    m_admin.add("🔀 𝗩𝟮 𝗣𝗮𝗻𝗲𝗹 𝗦𝗲𝗹𝗲𝗰𝘁")
+    m_admin.add("📡 𝗘𝘅𝘁𝗿𝗮 𝗚𝗿𝗼𝘂𝗽𝘀")
     m_admin.add("⬅️🔙 𝗨𝘀𝗲𝗿 𝗠𝗲𝗻𝘂")
     bot.send_message(
         message.chat.id,
@@ -7275,7 +8123,7 @@ _ALL_MENU_BTNS = {
     "➕ 𝗔𝗱𝗱 𝗦𝗲𝗿𝘃𝗶𝗰𝗲", "🗑️ 𝗥𝗲𝗺𝗼𝘃𝗲 𝗦𝗲𝗿𝘃𝗶𝗰𝗲",
     "📊 𝗣𝗮𝗻𝗲𝗹𝘀", "🔍 𝗧𝗲𝘀𝘁 𝗣𝗮𝗻𝗲𝗹", "👑 𝗔𝗱𝗱 𝗔𝗱𝗺𝗶𝗻", "🗑️ 𝗥𝗲𝗺𝗼𝘃𝗲 𝗔𝗱𝗺𝗶𝗻",
     "📞 𝗦𝘂𝗽𝗽𝗼𝗿𝘁 𝗜𝗗",
-    "⚙️ 𝗦𝗲𝘁𝘁𝗶𝗻𝗴𝘀", "✏️ 𝗘𝗱𝗶𝘁 𝗠𝗲𝘀𝘀𝗮𝗴𝗲𝘀", "📡 𝗩𝟮 𝗠𝗲𝘀𝘀𝗮𝗴𝗲 𝗙𝗼𝗿𝗺𝗮𝘁", "⬅️🔙 𝗨𝘀𝗲𝗿 𝗠𝗲𝗻𝘂",
+    "⚙️ 𝗦𝗲𝘁𝘁𝗶𝗻𝗴𝘀", "✏️ 𝗘𝗱𝗶𝘁 𝗠𝗲𝘀𝘀𝗮𝗴𝗲𝘀", "📡 𝗩𝟮 𝗠𝗲𝘀𝘀𝗮𝗴𝗲 𝗙𝗼𝗿𝗺𝗮𝘁", "🔀 𝗩𝟮 𝗣𝗮𝗻𝗲𝗹 𝗦𝗲𝗹𝗲𝗰𝘁", "📡 𝗘𝘅𝘁𝗿𝗮 𝗚𝗿𝗼𝘂𝗽𝘀", "👨‍💻 𝗗𝗲𝘃𝗲𝗹𝗼𝗽𝗲𝗿 𝗜𝗻𝗳𝗼", "⬅️🔙 𝗨𝘀𝗲𝗿 𝗠𝗲𝗻𝘂",
     "🔙 𝗔𝗗𝗠𝗜𝗡 𝗣𝗔𝗡𝗘𝗟", "🔙 Admin Panel", "🔙 Admin Menu",
 }
 
