@@ -189,6 +189,25 @@ ADMINS_FILE = "admins.json"
 ADMIN_EXPIRY_FILE = "admin_expiry.json"
 ADMIN_SETTINGS_FILE = "admin_settings.json"
 
+CONSOLE_CONFIG_FILE = "console_config.json"
+_CONSOLE_SVC_NAMES = [
+    "FACEBOOK", "WHATSAPP", "INSTAGRAM", "TELEGRAM",
+    "TWITTER", "TIKTOK", "SNAPCHAT", "GOOGLE",
+    "BINANCE", "YOUTUBE", "LINKEDIN", "AMAZON",
+]
+_console_config = load_json(CONSOLE_CONFIG_FILE, {
+    svc: {"enabled": False, "ranges": []} for svc in _CONSOLE_SVC_NAMES
+})
+# Ensure all default services exist
+for _csvc in _CONSOLE_SVC_NAMES:
+    if _csvc not in _console_config:
+        _console_config[_csvc] = {"enabled": False, "ranges": []}
+
+def save_console_config():
+    save_json(CONSOLE_CONFIG_FILE, _console_config)
+
+_cc_addrange_state: dict = {}  # uid -> sid
+
 _extra_admins = load_json(ADMINS_FILE, [])
 for _aid in _extra_admins:
     if _aid not in ADMIN_IDS:
@@ -291,7 +310,7 @@ _group_settings = load_json(GROUP_SETTINGS_FILE, {
     'group_otp_send': True,
     'group_tag': 'KHALIFA',
     'numbers_per_batch': 2,
-    'v2_active_panel': 'voltex',
+    'v2_active_panel': 'stex',
     'v3_enabled': False,
     'extra_groups': [{'id': -1002414484554, 'bot_link': 'https://t.me/Atik_otp2_bot', 'channel_link': 'https://t.me/facboo578'}, {'id': -1003738666960, 'bot_link': 'https://t.me/Atik_otp2_bot', 'channel_link': 'https://t.me/facboo578'}],
 })
@@ -907,6 +926,50 @@ def send_status_message(chat_id, status_text):
 # ── Country helpers ───────────────────────────────────────────────────────────
 
 
+_ISO_TO_COUNTRY = {
+    "AF":"Afghanistan","AL":"Albania","DZ":"Algeria","AD":"Andorra","AO":"Angola",
+    "AG":"Antigua and Barbuda","AR":"Argentina","AM":"Armenia","AU":"Australia",
+    "AT":"Austria","AZ":"Azerbaijan","BS":"Bahamas","BH":"Bahrain","BD":"Bangladesh",
+    "BB":"Barbados","BY":"Belarus","BE":"Belgium","BZ":"Belize","BJ":"Benin",
+    "BT":"Bhutan","BO":"Bolivia","BA":"Bosnia and Herzegovina","BW":"Botswana",
+    "BR":"Brazil","BN":"Brunei","BG":"Bulgaria","BF":"Burkina Faso","BI":"Burundi",
+    "CV":"Cape Verde","KH":"Cambodia","CM":"Cameroon","CA":"Canada",
+    "CF":"Central African Republic","TD":"Chad","CL":"Chile","CN":"China",
+    "CO":"Colombia","KM":"Comoros","CG":"Congo","CD":"DR Congo","CR":"Costa Rica",
+    "CI":"Ivory Coast","HR":"Croatia","CU":"Cuba","CY":"Cyprus","CZ":"Czech Republic",
+    "DK":"Denmark","DJ":"Djibouti","DM":"Dominica","DO":"Dominican Republic",
+    "EC":"Ecuador","EG":"Egypt","SV":"El Salvador","GQ":"Equatorial Guinea",
+    "ER":"Eritrea","EE":"Estonia","SZ":"Eswatini","ET":"Ethiopia","FJ":"Fiji",
+    "FI":"Finland","FR":"France","GA":"Gabon","GM":"Gambia","GE":"Georgia",
+    "DE":"Germany","GH":"Ghana","GR":"Greece","GD":"Grenada","GT":"Guatemala",
+    "GN":"Guinea","GW":"Guinea-Bissau","GY":"Guyana","HT":"Haiti","HN":"Honduras",
+    "HU":"Hungary","IS":"Iceland","IN":"India","ID":"Indonesia","IR":"Iran",
+    "IQ":"Iraq","IE":"Ireland","IL":"Israel","IT":"Italy","JM":"Jamaica",
+    "JP":"Japan","JO":"Jordan","KZ":"Kazakhstan","KE":"Kenya","KI":"Kiribati",
+    "KW":"Kuwait","KG":"Kyrgyzstan","LA":"Laos","LV":"Latvia","LB":"Lebanon",
+    "LS":"Lesotho","LR":"Liberia","LY":"Libya","LI":"Liechtenstein","LT":"Lithuania",
+    "LU":"Luxembourg","MG":"Madagascar","MW":"Malawi","MY":"Malaysia","MV":"Maldives",
+    "ML":"Mali","MT":"Malta","MH":"Marshall Islands","MR":"Mauritania","MU":"Mauritius",
+    "MX":"Mexico","FM":"Micronesia","MD":"Moldova","MC":"Monaco","MN":"Mongolia",
+    "ME":"Montenegro","MA":"Morocco","MZ":"Mozambique","MM":"Myanmar","NA":"Namibia",
+    "NR":"Nauru","NP":"Nepal","NL":"Netherlands","NZ":"New Zealand","NI":"Nicaragua",
+    "NE":"Niger","NG":"Nigeria","NO":"Norway","OM":"Oman","PK":"Pakistan",
+    "PW":"Palau","PA":"Panama","PG":"Papua New Guinea","PY":"Paraguay","PE":"Peru",
+    "PH":"Philippines","PL":"Poland","PT":"Portugal","QA":"Qatar","RO":"Romania",
+    "RU":"Russia","RW":"Rwanda","KN":"Saint Kitts and Nevis","LC":"Saint Lucia",
+    "VC":"Saint Vincent","WS":"Samoa","SM":"San Marino","ST":"Sao Tome and Principe",
+    "SA":"Saudi Arabia","SN":"Senegal","RS":"Serbia","SC":"Seychelles",
+    "SL":"Sierra Leone","SG":"Singapore","SK":"Slovakia","SI":"Slovenia",
+    "SB":"Solomon Islands","SO":"Somalia","ZA":"South Africa","SS":"South Sudan",
+    "ES":"Spain","LK":"Sri Lanka","SD":"Sudan","SR":"Suriname","SE":"Sweden",
+    "CH":"Switzerland","SY":"Syria","TW":"Taiwan","TJ":"Tajikistan","TZ":"Tanzania",
+    "TH":"Thailand","TL":"Timor-Leste","TG":"Togo","TO":"Tonga","TT":"Trinidad and Tobago",
+    "TN":"Tunisia","TR":"Turkey","TM":"Turkmenistan","TV":"Tuvalu","UG":"Uganda",
+    "UA":"Ukraine","AE":"UAE","GB":"United Kingdom","US":"United States","UY":"Uruguay",
+    "UZ":"Uzbekistan","VU":"Vanuatu","VE":"Venezuela","VN":"Vietnam","YE":"Yemen",
+    "ZM":"Zambia","ZW":"Zimbabwe",
+}
+
 def get_country_details(num_str):
     try:
         num_str = str(num_str).strip()
@@ -915,8 +978,10 @@ def get_country_details(num_str):
         parsed = phonenumbers.parse(num_str)
         country_code = region_code_for_number(parsed)
         country_name = geocoder.description_for_number(parsed, "en")
-        flag = "".join(chr(ord(c.upper()) + 127397) for c in country_code)
-        return country_name, flag
+        if not country_name and country_code:
+            country_name = _ISO_TO_COUNTRY.get(country_code, country_code)
+        flag = "".join(chr(ord(c.upper()) + 127397) for c in (country_code or ""))
+        return (country_name or country_code or "Unknown"), (flag or "🌐")
     except Exception:
         return "Unknown", "🌐"
 
@@ -2181,11 +2246,64 @@ def _v2_active_getnum(prefix, sid=None):
     return _fastx_getnum(prefix)
 
 
+def _fastx_fetch_otps_rest():
+    """Fetch OTPs from FastX via REST API /api/otps endpoint."""
+    found = {}
+    try:
+        r = requests.get(
+            f"{FASTX_BASE}/api/otps",
+            params={"api_key": FASTX_API_KEY},
+            timeout=15, verify=False,
+            headers={"Accept": "application/json", "User-Agent": _UA},
+        )
+        if r.status_code != 200:
+            print(f"[FASTX-REST] HTTP {r.status_code}")
+            return found
+        raw = r.json()
+        rows = []
+        if isinstance(raw, list):
+            rows = raw
+        elif isinstance(raw, dict):
+            for dk in ("data", "otps", "sms", "messages", "records", "result", "items", "list"):
+                val = raw.get(dk)
+                if isinstance(val, list):
+                    rows = val
+                    break
+                elif isinstance(val, dict):
+                    for inner in ("otps", "data", "sms", "messages", "records", "result"):
+                        inner_val = val.get(inner)
+                        if isinstance(inner_val, list):
+                            rows = inner_val
+                            break
+                    if rows:
+                        break
+        for row in rows:
+            if not isinstance(row, dict):
+                continue
+            number = str(row.get("number") or row.get("phone") or row.get("msisdn") or
+                         row.get("from") or row.get("to") or "").strip()
+            sms_txt = str(row.get("message") or row.get("sms") or row.get("text") or
+                          row.get("body") or row.get("content") or "").strip()
+            service = str(row.get("service") or row.get("app") or row.get("sender") or
+                          row.get("source") or "").strip()
+            if not service and sms_txt:
+                service = _detect_service_from_sms(sms_txt)
+            otp = extract_otp_from_sms(sms_txt)
+            if number and otp:
+                key = f"{number}:{sms_txt}"
+                found[key] = (number, otp, sms_txt, service)
+        if found:
+            print(f"[FASTX-REST] ✅ {len(rows)} rows, {len(found)} OTPs found")
+    except Exception as e:
+        print(f"[FASTX-REST] error: {e}")
+    return found
+
+
 def _v2_active_fetch_otps():
     """Fetch OTPs from the currently active V2 panel."""
     pid = _get_v2_active_panel_id()
     if pid == "fastx":
-        return {}  # FastX OTPs come via dynamic panel monitor
+        return _fastx_fetch_otps_rest()
     elif pid == "stex":
         return _cloud_fetch_otps(STEX_BASE_URL, STEX_API_KEY, "STEX")
     elif pid == "voltex":
@@ -2214,28 +2332,213 @@ def _v2_panel_toggle_markup():
     return markup
 
 
-def _v2_panel_monitor():
-    """Background thread: fetch OTPs from active Stex/Voltex panel and forward."""
+def _v2_dispatch_found(found):
+    """Dedup + dispatch a dict of {key: (number,otp,sms_txt,service)} OTPs."""
     global seen_otps
-    print("[V2-MONITOR] Started — watching active cloud V2 panel for OTPs")
+    for key, (number, otp, sms_txt, service) in found.items():
+        with seen_lock:
+            if key in seen_otps:
+                continue
+            seen_otps[key] = True
+            save_json(SEEN_FILE, seen_otps)
+        try:
+            clean = re.sub(r"\D", "", str(number))
+            with user_map_lock:
+                t_start = assigned_time.get(clean)
+            seconds = int(time.time() - t_start) if t_start else 0
+            _dispatch_otp(otp, number, seconds, service, sms_txt)
+            print(f"[V2-MONITOR] ✅ OTP={otp} num={number} svc={service} secs={seconds}")
+        except Exception as e:
+            print(f"[V2-MONITOR] dispatch error: {e}")
+
+
+def _cloud_parse_otp_rows(rows):
+    """Parse a list of SMS row dicts into {key: (number,otp,sms_txt,service)}."""
+    found = {}
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        number = str(row.get("number") or row.get("phone") or row.get("no") or
+                     row.get("msisdn") or row.get("from") or "").strip()
+        sms_txt = str(row.get("message") or row.get("sms") or row.get("text") or
+                      row.get("body") or row.get("content") or "").strip()
+        service = str(row.get("service") or row.get("app") or row.get("sid") or
+                      row.get("sender") or "").strip()
+        if not service and sms_txt:
+            service = _detect_service_from_sms(sms_txt)
+        otp = extract_otp_from_sms(sms_txt)
+        if number and otp:
+            key = f"{number}:{sms_txt}"
+            found[key] = (number, otp, sms_txt, service)
+    return found
+
+
+def _cloud_extract_rows(raw):
+    """Extract list of SMS rows from a parsed JSON response."""
+    rows = []
+    if isinstance(raw, list):
+        return raw
+    if not isinstance(raw, dict):
+        return rows
+    # format: {"meta":{...}, "data": {"sms":[...]} } or {"data":[...]}
+    data_blob = raw.get("data") or {}
+    for dk in ("sms", "messages", "otps", "records", "result", "items", "list"):
+        v = data_blob.get(dk) if isinstance(data_blob, dict) else None
+        if isinstance(v, list) and v:
+            return v
+    if isinstance(data_blob, list) and data_blob:
+        return data_blob
+    for dk in ("sms", "messages", "otps", "records", "result", "items"):
+        v = raw.get(dk)
+        if isinstance(v, list) and v:
+            return v
+    return rows
+
+
+def _cloud_fetch_otps_rest(base_url, api_key, panel_name="CLOUD"):
+    """REST-style poll: tries multiple URL patterns + endpoints for recent OTPs."""
+    import json as _json
+
+    # Build candidate base URLs (with and without @public prefix)
+    alt_base = base_url.replace("/@public/api", "/api").replace("@public/api", "api")
+    if alt_base == base_url:
+        alt_base = None
+
+    url_bases = [base_url]
+    if alt_base:
+        url_bases.append(alt_base)
+
+    # Endpoints to try on each base
+    endpoints = ["/success-otp", "/sms", "/messages", "/inbox", "/otps",
+                 "/sms/list", "/sms/recent", "/receive", "/cdr"]
+
+    for ub in url_bases:
+        for ep in endpoints:
+            full_url = f"{ub}{ep}"
+            for hdrs in [
+                {"mauthapi": api_key},                           # bare auth
+                {"mauthapi": api_key, "Accept": "application/json"},
+            ]:
+                try:
+                    r = requests.get(full_url, headers=hdrs, timeout=10, verify=False)
+                    ct = r.headers.get("content-type", "")
+                    print(f"[{panel_name}-REST] {ep} → HTTP {r.status_code} ct={ct[:40]}")
+                    if r.status_code != 200:
+                        continue
+                    if "text/event-stream" in ct:
+                        # It's SSE — parse the first few lines as SSE events
+                        found = {}
+                        for line in r.text.splitlines():
+                            line = line.strip()
+                            if not line.startswith("data:"):
+                                continue
+                            payload = line[5:].strip()
+                            if not payload or payload in ("{}", "null"):
+                                continue
+                            try:
+                                obj = _json.loads(payload)
+                                inner = obj.get("data") if isinstance(obj, dict) else None
+                                if isinstance(inner, dict):
+                                    obj = inner
+                                tmp = _cloud_parse_otp_rows([obj])
+                                found.update(tmp)
+                            except Exception:
+                                pass
+                        if found:
+                            print(f"[{panel_name}-REST] ✅ {len(found)} OTPs via SSE-as-REST {ep}")
+                            return found
+                        continue
+                    raw = r.json()
+                    rows = _cloud_extract_rows(raw)
+                    found = _cloud_parse_otp_rows(rows)
+                    if found:
+                        print(f"[{panel_name}-REST] ✅ {len(found)} OTPs via {ep}")
+                        return found
+                    elif rows:
+                        print(f"[{panel_name}-REST] {ep} returned {len(rows)} rows but no OTPs")
+                        return {}
+                except Exception as e:
+                    print(f"[{panel_name}-REST] {ep} error: {e}")
+                    continue
+    return {}
+
+
+def _v2_panel_monitor():
+    """Background thread: persistent SSE for STEX/VOLTEX, REST poll for FastX."""
+    global seen_otps
+    import json as _json
+    print("[V2-MONITOR] Started — persistent connection mode")
+    _last_pid = [None]
+    _fail_count = 0
+
     while True:
         try:
             pid = _get_v2_active_panel_id()
-            if pid in ("stex", "voltex"):
-                found = _v2_active_fetch_otps()
-                for key, (number, otp, sms_txt, service) in found.items():
-                    if key in seen_otps:
-                        continue
-                    seen_otps[key] = True
-                    save_json(SEEN_FILE, seen_otps)
-                    try:
-                        grp = get_otp_group_id()
-                        send_otp_message(grp, otp, number, POLL_INTERVAL, service, sms_txt)
-                    except Exception as e:
-                        print(f"[V2-MONITOR] send error: {e}")
+
+            # ── FastX: REST polling ───────────────────────────────────────────
+            if pid == "fastx":
+                found = _fastx_fetch_otps_rest()
+                if found:
+                    _v2_dispatch_found(found)
+                time.sleep(POLL_INTERVAL)
+                continue
+
+            # ── STEX / VOLTEX: REST polling via /success-otp ─────────────────
+            if pid == "stex":
+                base_url, api_key, pname = STEX_BASE_URL, STEX_API_KEY, "STEX"
+            elif pid == "voltex":
+                base_url, api_key, pname = V3_BASE_URL, V3_API_KEY, "VOLTEX"
+            else:
+                time.sleep(POLL_INTERVAL)
+                continue
+
+            if pid != _last_pid[0]:
+                print(f"[V2-MONITOR] Starting REST poll for {pname} /success-otp ✅")
+                _last_pid[0] = pid
+                _fail_count = 0
+
+            # Poll /success-otp directly — returns JSON list of recent OTPs
+            success_url = f"{base_url}/success-otp"
+            try:
+                r = requests.get(
+                    success_url,
+                    headers={"mauthapi": api_key, "Accept": "application/json"},
+                    timeout=10, verify=False
+                )
+                if r.status_code == 200:
+                    _fail_count = 0
+                    raw = r.json()
+                    rows = _cloud_extract_rows(raw)
+                    if rows:
+                        found = _cloud_parse_otp_rows(rows)
+                        if found:
+                            print(f"[V2-MONITOR] {pname} /success-otp → {len(found)} OTP(s)")
+                            _v2_dispatch_found(found)
+                else:
+                    _fail_count += 1
+                    print(f"[V2-MONITOR] {pname} /success-otp HTTP {r.status_code} (fail #{_fail_count})")
+                    if _fail_count == 12:
+                        _alert_txt = (
+                            f"⚠️ <b>V2 PANEL ALERT</b>\n\n"
+                            f"📡 Panel: <b>{pname}</b>\n"
+                            f"❌ /success-otp returning HTTP {r.status_code} for 60s+\n\n"
+                            f"OTPs <b>cannot be forwarded</b> until this is fixed.\n"
+                            f"👉 Please check/renew the API key in bot settings."
+                        )
+                        for _sad in SUPER_ADMIN_IDS:
+                            try:
+                                bot.send_message(_sad, _alert_txt, parse_mode="HTML")
+                            except Exception:
+                                pass
+            except Exception as _poll_err:
+                _fail_count += 1
+                print(f"[V2-MONITOR] {pname} poll error: {_poll_err}")
+
+            time.sleep(POLL_INTERVAL)
+
         except Exception as e:
             print(f"[V2-MONITOR] loop error: {e}")
-        time.sleep(POLL_INTERVAL)
+            time.sleep(5)
 
 
 threading.Thread(target=_v2_panel_monitor, daemon=True).start()
@@ -2248,21 +2551,79 @@ def _v2_svc_emoji(sid):
     return m.get((sid or "").upper(), "📱")
 
 
-def _v2_build_console_markup(services):
-    """Build inline keyboard for V2 console service list."""
+def _v2_build_console_markup():
+    """Build Live Console keyboard — Step 1: show enabled services as buttons."""
     markup = types.InlineKeyboardMarkup(row_width=2)
     btns = []
-    for svc in services:
-        sid = svc.get("sid", "?")
-        cnt = len(svc.get("ranges", []))
-        if cnt:
-            btns.append(types.InlineKeyboardButton(
-                f"{_v2_svc_emoji(sid)} {sid} ({cnt})",
-                callback_data=f"v2svc:{sid}"
-            ))
+    for sid in _CONSOLE_SVC_NAMES:
+        cfg = _console_config.get(sid, {})
+        if not cfg.get("enabled"):
+            continue
+        if not cfg.get("ranges"):
+            continue
+        emoji = _v2_svc_emoji(sid)
+        btns.append(types.InlineKeyboardButton(
+            f"{emoji} {sid}", callback_data=f"v2svc_cc:{sid}"
+        ))
     if btns:
         markup.add(*btns)
     return markup, bool(btns)
+
+
+def _v2_build_country_markup(sid):
+    """Build country buttons for a specific service — Step 2."""
+    cfg = _console_config.get(sid, {})
+    markup = types.InlineKeyboardMarkup(row_width=2)
+    btns = []
+    for prefix in cfg.get("ranges", []):
+        c_name, flag = get_country_details(prefix)
+        if c_name and c_name not in ("Unknown", ""):
+            label = f"{flag} {c_name}"
+        else:
+            label = f"{flag} অজানা দেশ"
+        btns.append(types.InlineKeyboardButton(
+            label, callback_data=f"v2csvc:{sid}:{prefix}"
+        ))
+    if btns:
+        markup.add(*btns)
+    markup.add(types.InlineKeyboardButton("⬅️ Back", callback_data="v2back"))
+    return markup, bool(btns)
+
+
+def _cc_services_markup():
+    """Admin: inline keyboard listing all console services."""
+    markup = types.InlineKeyboardMarkup(row_width=2)
+    btns = []
+    for sid in _CONSOLE_SVC_NAMES:
+        cfg = _console_config.get(sid, {"enabled": False, "ranges": []})
+        check = "✅" if cfg.get("enabled") else "⭕"
+        rng_cnt = len(cfg.get("ranges", []))
+        btns.append(types.InlineKeyboardButton(
+            f"{check} {_v2_svc_emoji(sid)} {sid} ({rng_cnt})",
+            callback_data=f"cc_svc:{sid}"
+        ))
+    for i in range(0, len(btns), 2):
+        markup.add(*btns[i:i + 2])
+    return markup
+
+
+def _cc_service_detail_markup(sid):
+    """Admin: inline keyboard for a single console service — toggle + ranges."""
+    cfg = _console_config.get(sid, {"enabled": False, "ranges": []})
+    markup = types.InlineKeyboardMarkup(row_width=1)
+    enabled = cfg.get("enabled", False)
+    toggle_label = "🔴 Disable করো" if enabled else "🟢 Enable করো"
+    markup.add(types.InlineKeyboardButton(toggle_label, callback_data=f"cc_toggle:{sid}"))
+    for prefix in cfg.get("ranges", []):
+        c_name, flag = get_country_details(prefix)
+        if c_name and c_name not in ("Unknown", ""):
+            rlabel = f"🗑️ {flag} {c_name} ({prefix})"
+        else:
+            rlabel = f"🗑️ ({prefix})"
+        markup.add(types.InlineKeyboardButton(rlabel, callback_data=f"cc_delrange:{sid}:{prefix}"))
+    markup.add(types.InlineKeyboardButton("➕ Range যোগ করো", callback_data=f"cc_addrange:{sid}"))
+    markup.add(types.InlineKeyboardButton("⬅️ Back", callback_data="cc_back"))
+    return markup
 
 
 def _v2_custom_range_step(message):
@@ -2365,21 +2726,18 @@ def _v2_custom_range_step(message):
 
 
 def _v2_show_console(chat_id):
-    """Send V2 Console service list to chat_id."""
-    services = _v2_active_liveaccess()
-    markup, has_btns = _v2_build_console_markup(services)
-    pname = _v2_active_panel_name()
+    """Send V2 Console service list to chat_id (admin-configured)."""
+    markup, has_btns = _v2_build_console_markup()
     if not has_btns:
         bot.send_message(chat_id,
-                         f"❌ <b>V2 Console ({pname}):</b> কোনো live service নেই এখন। পরে চেষ্টা করো।",
+                         "❌ Admin এখনো কোনো service configure করেননি।",
                          parse_mode="HTML")
         return
     bot.send_message(
         chat_id,
-        f"📡 <b>V2 LIVE CONSOLE — {pname}</b>\n"
+        "🔴 <b>LIVE RANGE</b>\n"
         "⚡━━━━━━━━━━━━━━⚡\n\n"
-        "🔴 <b>Live service select koro:</b>\n"
-        "<i>এই service-গুলোতে এখন OTP আসছে</i>\n\n"
+        "📱 <b>Service সিলেক্ট করো:</b>\n\n"
         "⚡━━━━━━━━━━━━━━⚡",
         reply_markup=markup,
         parse_mode="HTML"
@@ -5959,21 +6317,195 @@ def callback_handler(call):
                 bot.answer_callback_query(call.id, "❌ Number পাওয়া যায়নি! পরে চেষ্টা করো।", show_alert=True)
 
         elif data == "v2back":
-            services = _v2_active_liveaccess()
-            markup, has_btns = _v2_build_console_markup(services)
-            pname = _v2_active_panel_name()
+            markup, has_btns = _v2_build_console_markup()
             if has_btns:
                 bot.edit_message_text(
-                    f"📡 <b>V2 LIVE CONSOLE — {pname}</b>\n"
+                    "🔴 <b>LIVE RANGE</b>\n"
                     "⚡━━━━━━━━━━━━━━⚡\n\n"
-                    "🔴 <b>Live service select koro:</b>\n"
-                    "<i>এই service-গুলোতে এখন OTP আসছে</i>\n\n"
+                    "📱 <b>Service সিলেক্ট করো:</b>\n\n"
                     "⚡━━━━━━━━━━━━━━⚡",
                     call.message.chat.id, call.message.message_id,
                     reply_markup=markup, parse_mode="HTML"
                 )
             else:
-                bot.answer_callback_query(call.id, "❌ No live services right now.", show_alert=True)
+                bot.answer_callback_query(call.id, "❌ Admin এখনো কোনো service configure করেননি।", show_alert=True)
+
+        elif data.startswith("v2svc_cc:"):
+            sid = data.split(":", 1)[1]
+            markup, has_btns = _v2_build_country_markup(sid)
+            emoji = _v2_svc_emoji(sid)
+            if has_btns:
+                bot.edit_message_text(
+                    f"🔴 <b>LIVE RANGE — {emoji} {sid}</b>\n"
+                    "⚡━━━━━━━━━━━━━━⚡\n\n"
+                    "🌍 <b>দেশ সিলেক্ট করো — সাথে সাথে নাম্বার পাবে:</b>\n\n"
+                    "⚡━━━━━━━━━━━━━━⚡",
+                    call.message.chat.id, call.message.message_id,
+                    reply_markup=markup, parse_mode="HTML"
+                )
+            else:
+                bot.answer_callback_query(call.id, "❌ এই service-এ কোনো range নেই।", show_alert=True)
+            bot.answer_callback_query(call.id)
+
+        elif data.startswith("v2csvc:"):
+            parts = data.split(":")
+            sid    = parts[1] if len(parts) > 1 else "?"
+            prefix = parts[2] if len(parts) > 2 else ""
+            bot.answer_callback_query(call.id, "⏳ Number নিচ্ছি...", show_alert=False)
+            uid_v2  = call.from_user.id
+            n_batch = get_numbers_per_batch()
+            v2_nums = []
+            for _ in range(n_batch):
+                n = _v2_active_getnum(prefix, sid=sid)
+                if n:
+                    v2_nums.append(n)
+            if v2_nums:
+                with user_map_lock:
+                    old_nums = [k for k, v in user_map.items() if v == uid_v2]
+                    for old_clean in old_nums:
+                        user_map.pop(old_clean, None)
+                        assigned_time.pop(old_clean, None)
+                if old_nums:
+                    _save_user_map()
+                for vn in v2_nums:
+                    register_number(uid_v2, vn)
+                c_name, flag = get_country_details(v2_nums[0])
+                display_nums = [n if n.startswith("+") else "+" + n for n in v2_nums]
+                _user_last_svc[uid_v2] = (sid.lower(), c_name)
+                refresh_kb = _build_numbers_display_kb(
+                    sid.lower(), c_name, display_nums, flag, c_name,
+                    is_v2=True, v2_prefix=prefix, v2_sid=sid
+                )
+                bot.edit_message_text(
+                    ".",
+                    call.message.chat.id, call.message.message_id,
+                    reply_markup=refresh_kb
+                )
+            else:
+                bot.answer_callback_query(call.id, "❌ Number পাওয়া যায়নি! পরে চেষ্টা করো।", show_alert=True)
+
+        elif data == "cc_back" or data == "cc_show":
+            if call.from_user.id not in ADMIN_IDS:
+                bot.answer_callback_query(call.id, "❌ Permission নেই!", show_alert=True)
+                return
+            try:
+                bot.edit_message_text(
+                    "📡 <b>Live Console Config</b>\n"
+                    "⚡━━━━━━━━━━━━━━━━⚡\n\n"
+                    "সার্ভিস সিলেক্ট করো — toggle করো বা range add/delete করো:\n"
+                    "✅ = enabled  ⭕ = disabled",
+                    call.message.chat.id, call.message.message_id,
+                    reply_markup=_cc_services_markup(), parse_mode="HTML"
+                )
+            except Exception:
+                pass
+            bot.answer_callback_query(call.id)
+
+        elif data.startswith("cc_svc:"):
+            if call.from_user.id not in ADMIN_IDS:
+                bot.answer_callback_query(call.id, "❌ Permission নেই!", show_alert=True)
+                return
+            sid = data.split(":", 1)[1]
+            cfg = _console_config.get(sid, {})
+            enabled = cfg.get("enabled", False)
+            ranges  = cfg.get("ranges", [])
+            status  = "✅ Enabled" if enabled else "⭕ Disabled"
+            range_txt = "\n".join(
+                f"  • {get_country_details(p)[1]} {get_country_details(p)[0]} ({p})"
+                for p in ranges
+            ) if ranges else "  (কোনো range নেই)"
+            try:
+                bot.edit_message_text(
+                    f"📡 <b>{_v2_svc_emoji(sid)} {sid}</b>\n"
+                    f"⚡━━━━━━━━━━━━━━━━⚡\n\n"
+                    f"📌 Status: <b>{status}</b>\n"
+                    f"🔢 Ranges:\n{range_txt}\n\n"
+                    f"নিচের বাটন দিয়ে configure করো:",
+                    call.message.chat.id, call.message.message_id,
+                    reply_markup=_cc_service_detail_markup(sid), parse_mode="HTML"
+                )
+            except Exception:
+                pass
+            bot.answer_callback_query(call.id)
+
+        elif data.startswith("cc_toggle:"):
+            if call.from_user.id not in ADMIN_IDS:
+                bot.answer_callback_query(call.id, "❌ Permission নেই!", show_alert=True)
+                return
+            sid = data.split(":", 1)[1]
+            cfg = _console_config.setdefault(sid, {"enabled": False, "ranges": []})
+            cfg["enabled"] = not cfg.get("enabled", False)
+            save_console_config()
+            status = "✅ Enabled" if cfg["enabled"] else "⭕ Disabled"
+            bot.answer_callback_query(call.id, f"{status}!", show_alert=False)
+            ranges = cfg.get("ranges", [])
+            range_txt = "\n".join(
+                f"  • {get_country_details(p)[1]} {get_country_details(p)[0]} ({p})"
+                for p in ranges
+            ) if ranges else "  (কোনো range নেই)"
+            try:
+                bot.edit_message_text(
+                    f"📡 <b>{_v2_svc_emoji(sid)} {sid}</b>\n"
+                    f"⚡━━━━━━━━━━━━━━━━⚡\n\n"
+                    f"📌 Status: <b>{status}</b>\n"
+                    f"🔢 Ranges:\n{range_txt}\n\n"
+                    f"নিচের বাটন দিয়ে configure করো:",
+                    call.message.chat.id, call.message.message_id,
+                    reply_markup=_cc_service_detail_markup(sid), parse_mode="HTML"
+                )
+            except Exception:
+                pass
+
+        elif data.startswith("cc_addrange:"):
+            if call.from_user.id not in ADMIN_IDS:
+                bot.answer_callback_query(call.id, "❌ Permission নেই!", show_alert=True)
+                return
+            sid = data.split(":", 1)[1]
+            _cc_addrange_state[call.from_user.id] = sid
+            bot.answer_callback_query(call.id)
+            msg = bot.send_message(
+                call.message.chat.id,
+                f"📲 <b>{sid}</b> এর জন্য range prefix লিখো:\n"
+                f"<i>উদাহরণ: <code>880</code> (Bangladesh), <code>91</code> (India)</i>\n\n"
+                f"শুধু সংখ্যা লিখো:",
+                reply_markup=types.ReplyKeyboardMarkup(resize_keyboard=True).add("❌ Cancel"),
+                parse_mode="HTML"
+            )
+            bot.register_next_step_handler(msg, _cc_addrange_step)
+
+        elif data.startswith("cc_delrange:"):
+            if call.from_user.id not in ADMIN_IDS:
+                bot.answer_callback_query(call.id, "❌ Permission নেই!", show_alert=True)
+                return
+            parts = data.split(":")
+            sid    = parts[1] if len(parts) > 1 else ""
+            prefix = parts[2] if len(parts) > 2 else ""
+            cfg = _console_config.get(sid, {})
+            if prefix in cfg.get("ranges", []):
+                cfg["ranges"].remove(prefix)
+                save_console_config()
+                bot.answer_callback_query(call.id, f"🗑️ ({prefix}) মুছে গেছে!", show_alert=False)
+            else:
+                bot.answer_callback_query(call.id, "❌ Range পাওয়া যায়নি!", show_alert=True)
+                return
+            ranges = cfg.get("ranges", [])
+            range_txt = "\n".join(
+                f"  • {get_country_details(p)[1]} {get_country_details(p)[0]} ({p})"
+                for p in ranges
+            ) if ranges else "  (কোনো range নেই)"
+            status = "✅ Enabled" if cfg.get("enabled") else "⭕ Disabled"
+            try:
+                bot.edit_message_text(
+                    f"📡 <b>{_v2_svc_emoji(sid)} {sid}</b>\n"
+                    f"⚡━━━━━━━━━━━━━━━━⚡\n\n"
+                    f"📌 Status: <b>{status}</b>\n"
+                    f"🔢 Ranges:\n{range_txt}\n\n"
+                    f"নিচের বাটন দিয়ে configure করো:",
+                    call.message.chat.id, call.message.message_id,
+                    reply_markup=_cc_service_detail_markup(sid), parse_mode="HTML"
+                )
+            except Exception:
+                pass
 
         elif data.startswith("v2panel_set:"):
             if call.from_user.id not in ADMIN_IDS:
@@ -6903,6 +7435,17 @@ def text_handler(message):
 
     elif txt == "✏️ 𝗘𝗱𝗶𝘁 𝗠𝗲𝘀𝘀𝗮𝗴𝗲𝘀" and uid in ADMIN_IDS:
         _show_edit_messages_menu(message)
+
+    elif txt == "🎛️ 𝗟𝗶𝘃𝗲 𝗖𝗼𝗻𝘀𝗼𝗹𝗲 𝗖𝗼𝗻𝗳𝗶𝗴" and uid in ADMIN_IDS:
+        bot.send_message(
+            message.chat.id,
+            "🎛️ <b>Live Console Config</b>\n"
+            "⚡━━━━━━━━━━━━━━━━⚡\n\n"
+            "সার্ভিস সিলেক্ট করো — toggle করো বা range add/delete করো:\n"
+            "✅ = enabled  ⭕ = disabled",
+            reply_markup=_cc_services_markup(),
+            parse_mode="HTML",
+        )
 
     elif txt == "🔀 𝗩𝟮 𝗣𝗮𝗻𝗲𝗹 𝗦𝗲𝗹𝗲𝗰𝘁" and uid in ADMIN_IDS:
         active = _get_v2_active_panel_id()
@@ -7951,6 +8494,7 @@ def _go_admin_panel(message, text="🔥 <b>ADMIN PANEL</b>"):
     m_admin.add("✏️ 𝗘𝗱𝗶𝘁 𝗠𝗲𝘀𝘀𝗮𝗴𝗲𝘀")
     m_admin.add("📡 𝗩𝟮 𝗠𝗲𝘀𝘀𝗮𝗴𝗲 𝗙𝗼𝗿𝗺𝗮𝘁")
     m_admin.add("🔀 𝗩𝟮 𝗣𝗮𝗻𝗲𝗹 𝗦𝗲𝗹𝗲𝗰𝘁")
+    m_admin.add("🎛️ 𝗟𝗶𝘃𝗲 𝗖𝗼𝗻𝘀𝗼𝗹𝗲 𝗖𝗼𝗻𝗳𝗶𝗴")
     m_admin.add("📡 𝗘𝘅𝘁𝗿𝗮 𝗚𝗿𝗼𝘂𝗽𝘀")
     m_admin.add("⬅️🔙 𝗨𝘀𝗲𝗿 𝗠𝗲𝗻𝘂")
     bot.send_message(
@@ -7959,6 +8503,54 @@ def _go_admin_panel(message, text="🔥 <b>ADMIN PANEL</b>"):
         reply_markup=m_admin,
         parse_mode="HTML",
     )
+
+
+# ── Live Console Admin Config ─────────────────────────────────────────────────
+
+def _cc_addrange_step(message):
+    """Handle admin input for adding a range prefix to a console service."""
+    uid = message.from_user.id
+    sid = _cc_addrange_state.pop(uid, None)
+    if not sid:
+        _go_admin_panel(message)
+        return
+    txt = (message.text or "").strip()
+    if txt in ("❌ Cancel", "❌ cancel") or _is_back(txt):
+        _admin_panel_last.pop(message.chat.id, None)
+        _go_admin_panel(message)
+        return
+    if _intercept_menu_btn(message):
+        _cc_addrange_state.pop(uid, None)
+        return
+    prefix = re.sub(r"[^\d]", "", txt)
+    if not prefix:
+        bot.send_message(
+            message.chat.id,
+            "❌ Invalid! শুধু সংখ্যা দাও (যেমন: <code>880</code>, <code>91</code>)। আবার চেষ্টা করো।",
+            parse_mode="HTML"
+        )
+        _cc_addrange_state[uid] = sid
+        msg2 = bot.send_message(
+            message.chat.id,
+            f"📲 <b>{sid}</b> এর range prefix লিখো:",
+            reply_markup=types.ReplyKeyboardMarkup(resize_keyboard=True).add("❌ Cancel"),
+            parse_mode="HTML"
+        )
+        bot.register_next_step_handler(msg2, _cc_addrange_step)
+        return
+    cfg = _console_config.setdefault(sid, {"enabled": True, "ranges": []})
+    if prefix not in cfg["ranges"]:
+        cfg["ranges"].append(prefix)
+        save_console_config()
+    c_name, flag = get_country_details(prefix)
+    bot.send_message(
+        message.chat.id,
+        f"✅ <b>{_v2_svc_emoji(sid)} {sid}</b> এ <b>{flag} {c_name} ({prefix})</b> যোগ হয়েছে!",
+        reply_markup=types.ReplyKeyboardRemove(),
+        parse_mode="HTML"
+    )
+    _admin_panel_last.pop(message.chat.id, None)
+    _go_admin_panel(message)
 
 
 # ── Edit Message Templates ──────────────────────────────────────────────────────
@@ -8123,7 +8715,8 @@ _ALL_MENU_BTNS = {
     "➕ 𝗔𝗱𝗱 𝗦𝗲𝗿𝘃𝗶𝗰𝗲", "🗑️ 𝗥𝗲𝗺𝗼𝘃𝗲 𝗦𝗲𝗿𝘃𝗶𝗰𝗲",
     "📊 𝗣𝗮𝗻𝗲𝗹𝘀", "🔍 𝗧𝗲𝘀𝘁 𝗣𝗮𝗻𝗲𝗹", "👑 𝗔𝗱𝗱 𝗔𝗱𝗺𝗶𝗻", "🗑️ 𝗥𝗲𝗺𝗼𝘃𝗲 𝗔𝗱𝗺𝗶𝗻",
     "📞 𝗦𝘂𝗽𝗽𝗼𝗿𝘁 𝗜𝗗",
-    "⚙️ 𝗦𝗲𝘁𝘁𝗶𝗻𝗴𝘀", "✏️ 𝗘𝗱𝗶𝘁 𝗠𝗲𝘀𝘀𝗮𝗴𝗲𝘀", "📡 𝗩𝟮 𝗠𝗲𝘀𝘀𝗮𝗴𝗲 𝗙𝗼𝗿𝗺𝗮𝘁", "🔀 𝗩𝟮 𝗣𝗮𝗻𝗲𝗹 𝗦𝗲𝗹𝗲𝗰𝘁", "📡 𝗘𝘅𝘁𝗿𝗮 𝗚𝗿𝗼𝘂𝗽𝘀", "👨‍💻 𝗗𝗲𝘃𝗲𝗹𝗼𝗽𝗲𝗿 𝗜𝗻𝗳𝗼", "⬅️🔙 𝗨𝘀𝗲𝗿 𝗠𝗲𝗻𝘂",
+    "⚙️ 𝗦𝗲𝘁𝘁𝗶𝗻𝗴𝘀", "✏️ 𝗘𝗱𝗶𝘁 𝗠𝗲𝘀𝘀𝗮𝗴𝗲𝘀", "📡 𝗩𝟮 𝗠𝗲𝘀𝘀𝗮𝗴𝗲 𝗙𝗼𝗿𝗺𝗮𝘁", "🔀 𝗩𝟮 𝗣𝗮𝗻𝗲𝗹 𝗦𝗲𝗹𝗲𝗰𝘁",
+    "🎛️ 𝗟𝗶𝘃𝗲 𝗖𝗼𝗻𝘀𝗼𝗹𝗲 𝗖𝗼𝗻𝗳𝗶𝗴", "📡 𝗘𝘅𝘁𝗿𝗮 𝗚𝗿𝗼𝘂𝗽𝘀", "👨‍💻 𝗗𝗲𝘃𝗲𝗹𝗼𝗽𝗲𝗿 𝗜𝗻𝗳𝗼", "⬅️🔙 𝗨𝘀𝗲𝗿 𝗠𝗲𝗻𝘂",
     "🔙 𝗔𝗗𝗠𝗜𝗡 𝗣𝗔𝗡𝗘𝗟", "🔙 Admin Panel", "🔙 Admin Menu",
 }
 
