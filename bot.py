@@ -430,11 +430,11 @@ TEMPLATES_FILE = "message_templates.json"
 _DEFAULT_TEMPLATES = {
     'otp_group': '━━━━━━━━━━━━━━━\n<blockquote>📱 <b>{svc}</b> {flag} | <code>{tagged_number}</code> | {flag}</blockquote>\n━━━━━━━━━━━━━━━\n<blockquote>🔑 KEY : <b>{otp}</b></blockquote>\n━━━━━━━━━━━━━━━\n<blockquote>🌍 Country: {country} {flag}</blockquote>\n━━━━━━━━━━━━━━━\n<blockquote>📩 MESSAGE\n{sms}</blockquote>\n━━━━━━━━━━━━━━━\n<blockquote>💬 Thanks for using 🫦👅</blockquote>\n━━━━━━━━━━━━━━━',
     'start': '🔥 <b>𝗔𝗥 𝗢𝗧𝗣 𝗕𝗢𝗧-𝗲 𝗦𝗔𝗚𝗢𝗧𝗢𝗠!</b> 🔥\n\n╔═════════════════════════════╗\n   🧾 <b>USER DASHBOARD</b>\n╠═════════════════════════════╣\n  👤 <b>User:</b> {uname}\n  🆔 <b>ID:</b> <code>{uid}</code>\n  📊 <b>Status:</b> 💎 Premium\n  🚀 <b>Workers:</b> 0\n╚═════════════════════════════╝\n\n╔══════════════════╗\n 𝗡𝗶𝗰𝗵𝗲𝗿 𝗰𝗵𝗮𝗻𝗻𝗲𝗹𝗲 <b>𝗝𝗢𝗜𝗡</b> 𝗵𝗼𝘆𝗲\n <b>𝗩𝗘𝗥𝗜𝗙𝗬</b> 𝗯𝗮𝘁𝗮𝗻𝗲 𝗰𝗹𝗶𝗰𝗸 𝗸𝗼𝗿𝗼!\n╚══════════════════╝\n\n🤖 <i>𝙋𝙤𝙬𝙚𝙧𝙚𝙙 𝙗𝙮</i>  <b>𝗔𝗥 𝗢𝗧𝗣 𝗕𝗢𝗧</b>',
-    'otp_dm': '{flag} {number} {svc} {flag}\n🫦 {country} {flag}',
+    'otp_dm': '📱 {svc} {flag} | {number} | {flag}\n\xa0 👀তোর কোড আইছে রে👀\n\n🔑 Key: {otp}\n\n💬 Thanks for using @hot_otp_bot',
     'verify_success': '🔥 <b>VERIFICATION COMPLETE!</b> 🔥\n\n╔═════════════════════════════╗\n   ✅ <b>ACCESS GRANTED</b>\n╠═════════════════════════════╣\n  👋 <b>Welcome, {vname}!</b>\n  🆔 <b>ID:</b> <code>{uid}</code>\n  📊 <b>Status:</b> 💎 Premium\n╚═════════════════════════════╝\n\n⚡ <b>𝗘𝗸𝗸𝗵𝗼𝗻 𝗻𝘂𝗺𝗯𝗮𝗿 𝗻𝗶𝘁𝗲 𝗽𝗮𝗿𝗯𝗲!</b> ⚡',
     'number_assigned': '✅ <b>Number Assigned Successfully !</b>\n\n🔧 <b>Platform :</b> {svc}\n🌍 <b>Country :</b> {flag} {country}\n\n📞 <b>Number :</b> <code>{number}</code>\n\n⏱ <b>Auto code fetch :</b> 10:00s',
     'broadcast': '🔥 <b>𝗔𝗥 𝗢𝗧𝗣 𝗕𝗢𝗧 — 𝗕𝗥𝗢𝗔𝗗𝗖𝗔𝗦𝗧!</b> 🔥\n⚡━━━━━━━━━━━━━━━━⚡\n\n📢 {text} 📢\n\n⚡━━━━━━━━━━━━━━━━⚡\n🤖🔥 <i>𝙋𝙤𝙬𝙚𝙧𝙚𝙙 𝙗𝙮</i>  <b>𝗔𝗥 𝗢𝗧𝗣 𝗕𝗢𝗧</b>  🔥🤖',
-    'otp_dm_v2': '{flag} {number} {svc} {flag}\n🫦 {country} {flag}',
+    'otp_dm_v2': '{flag}|{number}| {svc}\n🌍COUNTRY: {country}',
 }
 # <<SYNC:_DEFAULT_TEMPLATES:END>>
 _templates = load_json(TEMPLATES_FILE, dict(_DEFAULT_TEMPLATES))
@@ -836,6 +836,12 @@ def send_otp_message(chat_id, otp, number, seconds, service="", sms_body=""):
             copy_text=types.CopyTextButton(text=otp_str)
         ))
         _is_v2 = uid in _v2_users
+        if last_svc_info and not _is_v2:
+            _svc, _scnt = last_svc_info
+            dm_markup.add(
+                types.InlineKeyboardButton("🔄 𝗚𝗲𝘁 𝗡𝗲𝘄 𝗡𝘂𝗺𝗯𝗲𝗿", callback_data=f"n:{_svc}:{_scnt}"),
+                types.InlineKeyboardButton("🌍 𝗖𝗵𝗮𝗻𝗴𝗲 𝗖𝗼𝘂𝗻𝘁𝗿𝘆", callback_data=f"s:{_svc}"),
+            )
 
         # Delete the previous "Number Assigned" message when OTP arrives
         prev_msg_id = _user_last_num_msg.get(uid)
@@ -7025,15 +7031,11 @@ def text_handler(message):
     if txt in ("☎️ 𝗩𝟭 𝗡𝗨𝗠𝗕𝗔𝗥 ☎️", "☎️ 𝗡𝗨𝗠𝗕𝗔𝗥 ☎️"):
         show_services(message)
 
-    custom_emoji = {
-    "get_number": '<tg-emoji id="5386367538735104399">📲</tg-emoji>'
-}
-
-elif txt == f'{custom_emoji["get_number"]} 𝗚𝗘𝗧 𝗡𝗨𝗠𝗕𝗘𝗥':
-    if _group_settings.get("v2_user_mode", False):
-        _v2_show_console(message.chat.id)
-    else:
-        show_services(message)
+    elif txt == "📲 𝗚𝗘𝗧 𝗡𝗨𝗠𝗕𝗘𝗥":
+        if _group_settings.get("v2_user_mode", False):
+            _v2_show_console(message.chat.id)
+        else:
+            show_services(message)
 
     elif txt == "🔄 𝗩𝟮 𝗦𝗪𝗜𝗧𝗖𝗛":
         _v2_users.add(uid)
