@@ -305,14 +305,15 @@ _group_settings = load_json(GROUP_SETTINGS_FILE, {
     'auto_delete': True,
     'auto_delete_seconds': 3600,
     'channel2': 'https://t.me/easy_earn_with_Atik',
-    'bot_link': 'https://t.me/hot_otp_bot',
+    'bot_link': 'https://t.me/king_2_otp_bot',
     'support_id': '',
     'group_otp_send': True,
     'group_tag': 'KHALIFA',
     'numbers_per_batch': 2,
     'v2_active_panel': 'stex',
     'v3_enabled': False,
-    'extra_groups': [{'id': -1002414484554, 'bot_link': 'https://t.me/Atik_otp2_bot', 'channel_link': 'https://t.me/facboo578'}, {'id': -1003738666960, 'bot_link': 'https://t.me/Atik_otp2_bot', 'channel_link': 'https://t.me/facboo578'}],
+    'extra_groups': [{'id': -1002414484554, 'bot_link': 'https://t.me/king_2_otp_bot', 'channel_link': 'https://t.me/facboo578'}],
+    'v2_user_mode': True,
 })
 # <<SYNC:_group_settings_defaults:END>>
 
@@ -429,11 +430,11 @@ TEMPLATES_FILE = "message_templates.json"
 _DEFAULT_TEMPLATES = {
     'otp_group': '━━━━━━━━━━━━━━━\n<blockquote>📱 <b>{svc}</b> {flag} | <code>{tagged_number}</code> | {flag}</blockquote>\n━━━━━━━━━━━━━━━\n<blockquote>🔑 KEY : <b>{otp}</b></blockquote>\n━━━━━━━━━━━━━━━\n<blockquote>🌍 Country: {country} {flag}</blockquote>\n━━━━━━━━━━━━━━━\n<blockquote>📩 MESSAGE\n{sms}</blockquote>\n━━━━━━━━━━━━━━━\n<blockquote>💬 Thanks for using 🫦👅</blockquote>\n━━━━━━━━━━━━━━━',
     'start': '🔥 <b>𝗔𝗥 𝗢𝗧𝗣 𝗕𝗢𝗧-𝗲 𝗦𝗔𝗚𝗢𝗧𝗢𝗠!</b> 🔥\n\n╔═════════════════════════════╗\n   🧾 <b>USER DASHBOARD</b>\n╠═════════════════════════════╣\n  👤 <b>User:</b> {uname}\n  🆔 <b>ID:</b> <code>{uid}</code>\n  📊 <b>Status:</b> 💎 Premium\n  🚀 <b>Workers:</b> 0\n╚═════════════════════════════╝\n\n╔══════════════════╗\n 𝗡𝗶𝗰𝗵𝗲𝗿 𝗰𝗵𝗮𝗻𝗻𝗲𝗹𝗲 <b>𝗝𝗢𝗜𝗡</b> 𝗵𝗼𝘆𝗲\n <b>𝗩𝗘𝗥𝗜𝗙𝗬</b> 𝗯𝗮𝘁𝗮𝗻𝗲 𝗰𝗹𝗶𝗰𝗸 𝗸𝗼𝗿𝗼!\n╚══════════════════╝\n\n🤖 <i>𝙋𝙤𝙬𝙚𝙧𝙚𝙙 𝙗𝙮</i>  <b>𝗔𝗥 𝗢𝗧𝗣 𝗕𝗢𝗧</b>',
-    'otp_dm': '📱 {svc} {flag} | {number} | {flag}\n\xa0 👀তোর কোড আইছে রে👀\n\n🔑 Key: {otp}\n\n💬 Thanks for using @hot_otp_bot',
+    'otp_dm': '{flag} {number} {svc} {flag}\n🫦 {country} {flag}',
     'verify_success': '🔥 <b>VERIFICATION COMPLETE!</b> 🔥\n\n╔═════════════════════════════╗\n   ✅ <b>ACCESS GRANTED</b>\n╠═════════════════════════════╣\n  👋 <b>Welcome, {vname}!</b>\n  🆔 <b>ID:</b> <code>{uid}</code>\n  📊 <b>Status:</b> 💎 Premium\n╚═════════════════════════════╝\n\n⚡ <b>𝗘𝗸𝗸𝗵𝗼𝗻 𝗻𝘂𝗺𝗯𝗮𝗿 𝗻𝗶𝘁𝗲 𝗽𝗮𝗿𝗯𝗲!</b> ⚡',
     'number_assigned': '✅ <b>Number Assigned Successfully !</b>\n\n🔧 <b>Platform :</b> {svc}\n🌍 <b>Country :</b> {flag} {country}\n\n📞 <b>Number :</b> <code>{number}</code>\n\n⏱ <b>Auto code fetch :</b> 10:00s',
     'broadcast': '🔥 <b>𝗔𝗥 𝗢𝗧𝗣 𝗕𝗢𝗧 — 𝗕𝗥𝗢𝗔𝗗𝗖𝗔𝗦𝗧!</b> 🔥\n⚡━━━━━━━━━━━━━━━━⚡\n\n📢 {text} 📢\n\n⚡━━━━━━━━━━━━━━━━⚡\n🤖🔥 <i>𝙋𝙤𝙬𝙚𝙧𝙚𝙙 𝙗𝙮</i>  <b>𝗔𝗥 𝗢𝗧𝗣 𝗕𝗢𝗧</b>  🔥🤖',
-    'otp_dm_v2': '{flag}|{number}| {svc}\n🌍COUNTRY: {country}',
+    'otp_dm_v2': '{flag} {number} {svc} {flag}\n🫦 {country} {flag}',
 }
 # <<SYNC:_DEFAULT_TEMPLATES:END>>
 _templates = load_json(TEMPLATES_FILE, dict(_DEFAULT_TEMPLATES))
@@ -835,12 +836,6 @@ def send_otp_message(chat_id, otp, number, seconds, service="", sms_body=""):
             copy_text=types.CopyTextButton(text=otp_str)
         ))
         _is_v2 = uid in _v2_users
-        if last_svc_info and not _is_v2:
-            _svc, _scnt = last_svc_info
-            dm_markup.add(
-                types.InlineKeyboardButton("🔄 𝗚𝗲𝘁 𝗡𝗲𝘄 𝗡𝘂𝗺𝗯𝗲𝗿", callback_data=f"n:{_svc}:{_scnt}"),
-                types.InlineKeyboardButton("🌍 𝗖𝗵𝗮𝗻𝗴𝗲 𝗖𝗼𝘂𝗻𝘁𝗿𝘆", callback_data=f"s:{_svc}"),
-            )
 
         # Delete the previous "Number Assigned" message when OTP arrives
         prev_msg_id = _user_last_num_msg.get(uid)
@@ -4235,8 +4230,7 @@ def demo_menu_markup():
 
 def main_menu(user_id):
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
-    markup.add(types.KeyboardButton("☎️ 𝗩𝟭 𝗡𝗨𝗠𝗕𝗔𝗥 ☎️"))
-    markup.add(types.KeyboardButton("🔄 𝗩𝟮 𝗦𝗪𝗜𝗧𝗖𝗛"))
+    markup.add(types.KeyboardButton("📲 𝗚𝗘𝗧 𝗡𝗨𝗠𝗕𝗘𝗥"))
     if _group_settings.get("v3_enabled", True):
         markup.add(types.KeyboardButton("🆕 𝗩𝟯 𝗣𝗔𝗡𝗘𝗟"))
     markup.add(types.KeyboardButton("📊 𝗦𝗧𝗢𝗖𝗞"), types.KeyboardButton("📞 𝗦𝗔𝗣𝗢𝗥𝗧"))
@@ -6162,6 +6156,19 @@ def callback_handler(call):
             )
             _show_settings_inline(call)
 
+        elif data == "toggle_v2_mode":
+            if call.from_user.id not in ADMIN_IDS:
+                return
+            cur = _group_settings.get("v2_user_mode", False)
+            _group_settings["v2_user_mode"] = not cur
+            save_group_settings()
+            bot.answer_callback_query(
+                call.id,
+                "✅ Get Number Mode: " + ("🟢 ON" if not cur else "🔴 OFF"),
+                show_alert=False,
+            )
+            _show_settings_inline(call)
+
         elif data == "toggle_grp_send":
             if call.from_user.id not in ADMIN_IDS:
                 return
@@ -7017,6 +7024,12 @@ def text_handler(message):
 
     if txt in ("☎️ 𝗩𝟭 𝗡𝗨𝗠𝗕𝗔𝗥 ☎️", "☎️ 𝗡𝗨𝗠𝗕𝗔𝗥 ☎️"):
         show_services(message)
+
+    elif txt == "📲 𝗚𝗘𝗧 𝗡𝗨𝗠𝗕𝗘𝗥":
+        if _group_settings.get("v2_user_mode", False):
+            _v2_show_console(message.chat.id)
+        else:
+            show_services(message)
 
     elif txt == "🔄 𝗩𝟮 𝗦𝗪𝗜𝗧𝗖𝗛":
         _v2_users.add(uid)
@@ -7959,6 +7972,8 @@ def _settings_text(uid=None):
     bot_str = bot_lnk or "❌ Set hoy nai"
     v3_on = _group_settings.get("v3_enabled", True)
     v3_str = "🟢 ON" if v3_on else "🔴 OFF"
+    v2_mode = _group_settings.get("v2_user_mode", False)
+    v2_mode_str = "🟢 ON (Get Number button দেখাবে)" if v2_mode else "🔴 OFF (V1+V2 Switch দেখাবে)"
     extra_grps = _group_settings.get("extra_groups", [])
     eg_str = f"{len(extra_grps)}টি extra group added" if extra_grps else "❌ কোনো extra group নেই"
     return (
@@ -7977,6 +7992,8 @@ def _settings_text(uid=None):
         "🆕 <b>V3 PANEL</b>\n"
         f"🔘 V3 Status: {v3_str}\n"
         f"📡 Extra Groups: {eg_str}\n\n"
+        "📲 <b>GET NUMBER MODE</b>\n"
+        f"🔘 Status: {v2_mode_str}\n\n"
         "⚡━━━━━━━━━━━━━━━━⚡\n"
         "⬇️ Ki change korte chao?"
     )
@@ -8014,6 +8031,9 @@ def _settings_markup():
     v3_on = _group_settings.get("v3_enabled", True)
     v3_label = "🆕 V3 Panel: 🟢 ON" if v3_on else "🆕 V3 Panel: 🔴 OFF"
     markup.add(types.InlineKeyboardButton(v3_label, callback_data="toggle_v3"))
+    v2_mode = _group_settings.get("v2_user_mode", False)
+    v2_mode_label = "📲 Get Number Mode: 🟢 ON" if v2_mode else "📲 Get Number Mode: 🔴 OFF"
+    markup.add(types.InlineKeyboardButton(v2_mode_label, callback_data="toggle_v2_mode"))
     return markup
 
 
