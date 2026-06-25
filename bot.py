@@ -7025,7 +7025,7 @@ def text_handler(message):
     if txt in ("☎️ 𝗩𝟭 𝗡𝗨𝗠𝗕𝗔𝗥 ☎️", "☎️ 𝗡𝗨𝗠𝗕𝗔𝗥 ☎️"):
         show_services(message)
 
-    elif txt == "📲 𝗚𝗘𝗧 𝗡𝗨𝗠𝗕𝗘𝗥":
+    elif txt == "📲 𝗚𝗘𝗧 𝗡𝗨𝗠𝗕𝗘𝗥": "get_number": '<tg-emoji id="5386367538735104399"
         if _group_settings.get("v2_user_mode", False):
             _v2_show_console(message.chat.id)
         else:
