@@ -575,10 +575,10 @@ _TEMPLATE_VARS = {
 SERVICES_FILE = "services.json"
 # <<SYNC:_DEFAULT_SERVICES:START>>
 _DEFAULT_SERVICES = [
-    {'label': 'Instagram →', 'key': 'instagram'},
-    {'label': 'Facebook 💎', 'key': 'facebook'},
-    {'label': 'WhatsApp', 'key': 'whatsapp'},
-    {'label': 'PC Clone 💎', 'key': 'pc clone'},
+    {'label': 'Instagram 👅', 'key': 'instagram'},
+    {'label': 'Facebook 👙', 'key': 'facebook'},
+    {'label': 'WhatsApp  🗺️', 'key': 'whatsapp'},
+    {'label': 'PC Clone 📲', 'key': 'pc clone'},
 ]
 # <<SYNC:_DEFAULT_SERVICES:END>>
 _services = load_json(SERVICES_FILE, list(_DEFAULT_SERVICES))
@@ -838,10 +838,7 @@ def send_otp_message(chat_id, otp, number, seconds, service="", sms_body=""):
         _is_v2 = uid in _v2_users
         if last_svc_info and not _is_v2:
             _svc, _scnt = last_svc_info
-            dm_markup.add(
-                types.InlineKeyboardButton("🔄 𝗚𝗲𝘁 𝗡𝗲𝘄 𝗡𝘂𝗺𝗯𝗲𝗿", callback_data=f"n:{_svc}:{_scnt}"),
-                types.InlineKeyboardButton("🌍 𝗖𝗵𝗮𝗻𝗴𝗲 𝗖𝗼𝘂𝗻𝘁𝗿𝘆", callback_data=f"s:{_svc}"),
-            )
+          
 
         # Delete the previous "Number Assigned" message when OTP arrives
         prev_msg_id = _user_last_num_msg.get(uid)
@@ -2546,7 +2543,7 @@ threading.Thread(target=_v2_panel_monitor, daemon=True).start()
 
 
 def _v2_svc_emoji(sid):
-    m = {"FACEBOOK": "🔵", "INSTAGRAM": "📸", "WHATSAPP": "💚", "TELEGRAM": "✈️",
+    m = {"FACEBOOK": "📱", "INSTAGRAM": "👙", "WHATSAPP": "🫦", "TELEGRAM": "✈🕊️",
          "TWITTER": "🐦", "TIKTOK": "🎵", "BINANCE": "🟡", "SNAPCHAT": "👻",
          "GOOGLE": "🔴", "YOUTUBE": "📺", "LINKEDIN": "💼", "AMAZON": "🛒"}
     return m.get((sid or "").upper(), "📱")
@@ -2954,7 +2951,6 @@ def _show_extra_groups(message):
         f"🔢 মোট extra group: <b>{len(groups)}টি</b>\n\n"
         "OTP সব group-এ পাঠাতে এখানে group add করো।\n"
         "প্রতিটি group-এর নিজস্ব bot link ও channel link set করতে পারবে।\n\n"
-        "⚡━━━━━━━━━━━━━━⚡",
         reply_markup=markup,
         parse_mode="HTML",
     )
@@ -7031,7 +7027,7 @@ def text_handler(message):
     if txt in ("☎️ 𝗩𝟭 𝗡𝗨𝗠𝗕𝗔𝗥 ☎️", "☎️ 𝗡𝗨𝗠𝗕𝗔𝗥 ☎️"):
         show_services(message)
 
-    elif txt == "📲 𝗚𝗘𝗧 𝗡𝗨𝗠𝗕𝗘𝗥":
+    elif txt == "📲 𝗚𝗘𝗧 𝗡𝗨𝗠𝗕𝗘𝗥", style="Danger":
         if _group_settings.get("v2_user_mode", False):
             _v2_show_console(message.chat.id)
         else:
