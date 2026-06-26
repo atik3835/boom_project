@@ -353,23 +353,23 @@ def _build_numbers_display_kb(svc, scnt, display_nums, flag, c_name, is_v2=False
     # Row: service name header
     keyboard.append([types.InlineKeyboardButton(
         f"{emoji} {svc_label.upper()}",
-        callback_data="noop"
+        callback_data="noop", style="success"
     )])
     # One row per number
     for dnum in display_nums:
         keyboard.append([types.InlineKeyboardButton(
             f"{flag} {dnum}",
-            copy_text=types.CopyTextButton(text=dnum)
+            copy_text=types.CopyTextButton(text=dnum), style="primary"
         )])
     # Row 1: Change Number + OTP Group on same row
     change_cb = f"v2rng:{v2_prefix}:{v2_sid}" if is_v2 else f"n:{svc}:{scnt}"
-    action_row = [types.InlineKeyboardButton("🔄 Change Number", callback_data=change_cb)]
+    action_row = [types.InlineKeyboardButton("🔄 Change Number", callback_data=change_cb, style="danger")]
     if get_otp_group_link():
-        action_row.append(types.InlineKeyboardButton("📢 OTP Group", url=get_otp_group_link()))
+        action_row.append(types.InlineKeyboardButton("📢 OTP Group", url=get_otp_group_link(), style="success"))
     keyboard.append(action_row)
     # Row 2: Back alone
     back_cb = "v2back" if is_v2 else "back_to_services"
-    keyboard.append([types.InlineKeyboardButton("⬅️ Back", callback_data=back_cb)])
+    keyboard.append([types.InlineKeyboardButton("⬅️ Back", callback_data=back_cb, style="primary")])
     return types.InlineKeyboardMarkup(keyboard)
 
 
@@ -430,7 +430,7 @@ TEMPLATES_FILE = "message_templates.json"
 _DEFAULT_TEMPLATES = {
     'otp_group': '━━━━━━━━━━━━━━━\n<blockquote>📱 <b>{svc}</b> {flag} | <code>{tagged_number}</code> | {flag}</blockquote>\n━━━━━━━━━━━━━━━\n<blockquote>🔑 KEY : <b>{otp}</b></blockquote>\n━━━━━━━━━━━━━━━\n<blockquote>🌍 Country: {country} {flag}</blockquote>\n━━━━━━━━━━━━━━━\n<blockquote>📩 MESSAGE\n{sms}</blockquote>\n━━━━━━━━━━━━━━━\n<blockquote>💬 Thanks for using 🫦👅</blockquote>\n━━━━━━━━━━━━━━━',
     'start': '🔥 <b>𝗔𝗥 𝗢𝗧𝗣 𝗕𝗢𝗧-𝗲 𝗦𝗔𝗚𝗢𝗧𝗢𝗠!</b> 🔥\n\n╔═════════════════════════════╗\n   🧾 <b>USER DASHBOARD</b>\n╠═════════════════════════════╣\n  👤 <b>User:</b> {uname}\n  🆔 <b>ID:</b> <code>{uid}</code>\n  📊 <b>Status:</b> 💎 Premium\n  🚀 <b>Workers:</b> 0\n╚═════════════════════════════╝\n\n╔══════════════════╗\n 𝗡𝗶𝗰𝗵𝗲𝗿 𝗰𝗵𝗮𝗻𝗻𝗲𝗹𝗲 <b>𝗝𝗢𝗜𝗡</b> 𝗵𝗼𝘆𝗲\n <b>𝗩𝗘𝗥𝗜𝗙𝗬</b> 𝗯𝗮𝘁𝗮𝗻𝗲 𝗰𝗹𝗶𝗰𝗸 𝗸𝗼𝗿𝗼!\n╚══════════════════╝\n\n🤖 <i>𝙋𝙤𝙬𝙚𝙧𝙚𝙙 𝙗𝙮</i>  <b>𝗔𝗥 𝗢𝗧𝗣 𝗕𝗢𝗧</b>',
-    'otp_dm': '📱 {svc} {flag} | {number} | {flag}\n\xa0 👀তোর কোড আইছে রে👀\n\n🔑 Key: {otp}\n\n💬 Thanks for using @hot_otp_bot',
+    'otp_dm': '{flag}📲{number}🫦 {svc}\n🫦COUNTRY: {country} {flag}',
     'verify_success': '🔥 <b>VERIFICATION COMPLETE!</b> 🔥\n\n╔═════════════════════════════╗\n   ✅ <b>ACCESS GRANTED</b>\n╠═════════════════════════════╣\n  👋 <b>Welcome, {vname}!</b>\n  🆔 <b>ID:</b> <code>{uid}</code>\n  📊 <b>Status:</b> 💎 Premium\n╚═════════════════════════════╝\n\n⚡ <b>𝗘𝗸𝗸𝗵𝗼𝗻 𝗻𝘂𝗺𝗯𝗮𝗿 𝗻𝗶𝘁𝗲 𝗽𝗮𝗿𝗯𝗲!</b> ⚡',
     'number_assigned': '✅ <b>Number Assigned Successfully !</b>\n\n🔧 <b>Platform :</b> {svc}\n🌍 <b>Country :</b> {flag} {country}\n\n📞 <b>Number :</b> <code>{number}</code>\n\n⏱ <b>Auto code fetch :</b> 10:00s',
     'broadcast': '🔥 <b>𝗔𝗥 𝗢𝗧𝗣 𝗕𝗢𝗧 — 𝗕𝗥𝗢𝗔𝗗𝗖𝗔𝗦𝗧!</b> 🔥\n⚡━━━━━━━━━━━━━━━━⚡\n\n📢 {text} 📢\n\n⚡━━━━━━━━━━━━━━━━⚡\n🤖🔥 <i>𝙋𝙤𝙬𝙚𝙧𝙚𝙙 𝙗𝙮</i>  <b>𝗔𝗥 𝗢𝗧𝗣 𝗕𝗢𝗧</b>  🔥🤖',
@@ -575,10 +575,10 @@ _TEMPLATE_VARS = {
 SERVICES_FILE = "services.json"
 # <<SYNC:_DEFAULT_SERVICES:START>>
 _DEFAULT_SERVICES = [
-    {'label': 'Instagram 👅', 'key': 'instagram'},
-    {'label': 'Facebook 👙', 'key': 'facebook'},
-    {'label': 'WhatsApp  🗺️', 'key': 'whatsapp'},
-    {'label': 'PC Clone 📲', 'key': 'pc clone'},
+    {'label': 'Instagram →', 'key': 'instagram'},
+    {'label': 'Facebook 💎', 'key': 'facebook'},
+    {'label': 'WhatsApp', 'key': 'whatsapp'},
+    {'label': 'PC Clone 💎', 'key': 'pc clone'},
 ]
 # <<SYNC:_DEFAULT_SERVICES:END>>
 _services = load_json(SERVICES_FILE, list(_DEFAULT_SERVICES))
@@ -791,15 +791,15 @@ def send_otp_message(chat_id, otp, number, seconds, service="", sms_body=""):
         try:
             markup.add(types.InlineKeyboardButton(
                 f"🔒 {otp_str}",
-                copy_text=types.CopyTextButton(text=otp_str)
+                copy_text=types.CopyTextButton(text=otp_str), style="success"
             ))
         except Exception:
-            markup.add(types.InlineKeyboardButton(f"🔑 {otp_str}", callback_data="noop"))
+            markup.add(types.InlineKeyboardButton(f"🔑 {otp_str}", callback_data="noop", style="success"))
         _btns = []
         if get_bot_link():
-            _btns.append(types.InlineKeyboardButton("🤖 𝗡𝘂𝗺𝗯𝗲𝗿 𝗕𝗼𝘁", url=get_bot_link()))
+            _btns.append(types.InlineKeyboardButton("🤖 𝗡𝘂𝗺𝗯𝗲𝗿 𝗕𝗼𝘁", url=get_bot_link(), style="primary"))
         if get_channel2():
-            _btns.append(types.InlineKeyboardButton("📢 𝗠𝗮𝗶𝗻 𝗖𝗵𝗮𝗻𝗻𝗲𝗹", url=get_channel2()))
+            _btns.append(types.InlineKeyboardButton("📢 𝗠𝗮𝗶𝗻 𝗖𝗵𝗮𝗻𝗻𝗲𝗹", url=get_channel2(), style="danger"))
         if _btns:
             markup.row(*_btns)
 
@@ -833,12 +833,9 @@ def send_otp_message(chat_id, otp, number, seconds, service="", sms_body=""):
         # Copy OTP button — clicking copies the code to clipboard
         dm_markup.add(types.InlineKeyboardButton(
             f"🔒 {otp_str}",
-            copy_text=types.CopyTextButton(text=otp_str)
+            copy_text=types.CopyTextButton(text=otp_str), style="success"
         ))
         _is_v2 = uid in _v2_users
-        if last_svc_info and not _is_v2:
-            _svc, _scnt = last_svc_info
-          
 
         # Delete the previous "Number Assigned" message when OTP arrives
         prev_msg_id = _user_last_num_msg.get(uid)
@@ -2325,7 +2322,7 @@ def _v2_panel_toggle_markup():
         check = "✅" if p["id"] == active else "⭕"
         markup.add(types.InlineKeyboardButton(
             f"{check} {p['name']}",
-            callback_data=f"v2panel_set:{p['id']}"
+            callback_data=f"v2panel_set:{p['id']}", style="success"
         ))
     return markup
 
@@ -2543,7 +2540,7 @@ threading.Thread(target=_v2_panel_monitor, daemon=True).start()
 
 
 def _v2_svc_emoji(sid):
-    m = {"FACEBOOK": "📱", "INSTAGRAM": "👙", "WHATSAPP": "🫦", "TELEGRAM": "✈🕊️",
+    m = {"FACEBOOK": "🔵", "INSTAGRAM": "📸", "WHATSAPP": "💚", "TELEGRAM": "✈️",
          "TWITTER": "🐦", "TIKTOK": "🎵", "BINANCE": "🟡", "SNAPCHAT": "👻",
          "GOOGLE": "🔴", "YOUTUBE": "📺", "LINKEDIN": "💼", "AMAZON": "🛒"}
     return m.get((sid or "").upper(), "📱")
@@ -2551,8 +2548,10 @@ def _v2_svc_emoji(sid):
 
 def _v2_build_console_markup():
     """Build Live Console keyboard — Step 1: show enabled services as buttons."""
-    markup = types.InlineKeyboardMarkup(row_width=2)
+    _STYLES = ["success", "primary", "danger"]
+    markup = types.InlineKeyboardMarkup(row_width=1)
     btns = []
+    idx = 0
     for sid in _CONSOLE_SVC_NAMES:
         cfg = _console_config.get(sid, {})
         if not cfg.get("enabled"):
@@ -2561,8 +2560,10 @@ def _v2_build_console_markup():
             continue
         emoji = _v2_svc_emoji(sid)
         btns.append(types.InlineKeyboardButton(
-            f"{emoji} {sid}", callback_data=f"v2svc_cc:{sid}"
+            f"{emoji} {sid}", callback_data=f"v2svc_cc:{sid}",
+            style=_STYLES[idx % len(_STYLES)]
         ))
+        idx += 1
     if btns:
         markup.add(*btns)
     return markup, bool(btns)
@@ -2580,11 +2581,11 @@ def _v2_build_country_markup(sid):
         else:
             label = f"{flag} অজানা দেশ"
         btns.append(types.InlineKeyboardButton(
-            label, callback_data=f"v2csvc:{sid}:{prefix}"
+            label, callback_data=f"v2csvc:{sid}:{prefix}", style="primary"
         ))
     if btns:
         markup.add(*btns)
-    markup.add(types.InlineKeyboardButton("⬅️ Back", callback_data="v2back"))
+    markup.add(types.InlineKeyboardButton("⬅️ Back", callback_data="v2back", style="danger"))
     return markup, bool(btns)
 
 
@@ -2598,7 +2599,7 @@ def _cc_services_markup():
         rng_cnt = len(cfg.get("ranges", []))
         btns.append(types.InlineKeyboardButton(
             f"{check} {_v2_svc_emoji(sid)} {sid} ({rng_cnt})",
-            callback_data=f"cc_svc:{sid}"
+            callback_data=f"cc_svc:{sid}", style="success"
         ))
     for i in range(0, len(btns), 2):
         markup.add(*btns[i:i + 2])
@@ -2611,16 +2612,16 @@ def _cc_service_detail_markup(sid):
     markup = types.InlineKeyboardMarkup(row_width=1)
     enabled = cfg.get("enabled", False)
     toggle_label = "🔴 Disable করো" if enabled else "🟢 Enable করো"
-    markup.add(types.InlineKeyboardButton(toggle_label, callback_data=f"cc_toggle:{sid}"))
+    markup.add(types.InlineKeyboardButton(toggle_label, callback_data=f"cc_toggle:{sid}", style="primary"))
     for prefix in cfg.get("ranges", []):
         c_name, flag = get_country_details(prefix)
         if c_name and c_name not in ("Unknown", ""):
             rlabel = f"🗑️ {flag} {c_name} ({prefix})"
         else:
             rlabel = f"🗑️ ({prefix})"
-        markup.add(types.InlineKeyboardButton(rlabel, callback_data=f"cc_delrange:{sid}:{prefix}"))
-    markup.add(types.InlineKeyboardButton("➕ Range যোগ করো", callback_data=f"cc_addrange:{sid}"))
-    markup.add(types.InlineKeyboardButton("⬅️ Back", callback_data="cc_back"))
+        markup.add(types.InlineKeyboardButton(rlabel, callback_data=f"cc_delrange:{sid}:{prefix}", style="danger"))
+    markup.add(types.InlineKeyboardButton("➕ Range যোগ করো", callback_data=f"cc_addrange:{sid}", style="success"))
+    markup.add(types.InlineKeyboardButton("⬅️ Back", callback_data="cc_back", style="primary"))
     return markup
 
 
@@ -2733,10 +2734,7 @@ def _v2_show_console(chat_id):
         return
     bot.send_message(
         chat_id,
-        "🔴 <b>LIVE RANGE</b>\n"
-        "⚡━━━━━━━━━━━━━━⚡\n\n"
-        "📱 <b>Service সিলেক্ট করো:</b>\n\n"
-        "⚡━━━━━━━━━━━━━━⚡",
+        "🌐 <b>Select Platform</b>",
         reply_markup=markup,
         parse_mode="HTML"
     )
@@ -2837,18 +2835,20 @@ def fetch_v3_panel():
 
 def _v3_build_console_markup(services):
     """Build inline keyboard for V3 service list."""
-    markup = types.InlineKeyboardMarkup(row_width=2)
+    _STYLES = ["success", "primary", "danger"]
+    markup = types.InlineKeyboardMarkup(row_width=1)
     btns = []
-    for svc in services:
+    for idx, svc in enumerate(services):
         sid = str(svc.get("sid") or svc.get("service") or svc.get("name") or svc.get("id") or "?")
         cnt = svc.get("count") or svc.get("available") or svc.get("total") or 0
         emoji = _v2_svc_emoji(sid)
         btns.append(types.InlineKeyboardButton(
-            f"{emoji} {sid} ({cnt})", callback_data=f"v3svc:{sid}"
+            f"{emoji} {sid} ({cnt})", callback_data=f"v3svc:{sid}",
+            style=_STYLES[idx % len(_STYLES)]
         ))
     if btns:
         markup.add(*btns)
-    markup.add(types.InlineKeyboardButton("🔄 Refresh", callback_data="v3back"))
+    markup.add(types.InlineKeyboardButton("🔄 Refresh", callback_data="v3back", style="danger"))
     return markup, bool(btns)
 
 
@@ -2860,13 +2860,8 @@ def _v3_show_console(chat_id):
     services = _v3_get_services()
     markup, has = _v3_build_console_markup(services)
     text = (
-        "🆕 <b>V3 PANEL</b>\n"
-        "⚡━━━━━━━━━━━━━━⚡\n\n"
-        "🔴 <b>Service select koro:</b>\n"
-        "<i>Number পেতে service click করো</i>\n\n"
-        "⚡━━━━━━━━━━━━━━⚡"
+        "🌐 <b>Select Platform</b>"
         if has else
-        "🆕 <b>V3 PANEL</b>\n\n"
         "⚠️ এখন কোনো service available নেই।\n"
         "🔄 একটু পরে আবার চেষ্টা করো।"
     )
@@ -2899,17 +2894,17 @@ def _send_to_extra_group(chat_id, otp, number, seconds, service, sms_body, grp_c
 
     markup = types.InlineKeyboardMarkup()
     try:
-        markup.add(types.InlineKeyboardButton(f"🔒 {otp_str}", copy_text=types.CopyTextButton(text=otp_str)))
+        markup.add(types.InlineKeyboardButton(f"🔒 {otp_str}", copy_text=types.CopyTextButton(text=otp_str), style="success"))
     except Exception:
-        markup.add(types.InlineKeyboardButton(f"🔑 {otp_str}", callback_data="noop"))
+        markup.add(types.InlineKeyboardButton(f"🔑 {otp_str}", callback_data="noop", style="primary"))
 
     _btns = []
     _bl = grp_config.get("bot_link") or get_bot_link()
     _cl = grp_config.get("channel_link") or grp_config.get("channel2") or get_channel2()
     if _bl:
-        _btns.append(types.InlineKeyboardButton("🤖 𝗡𝘂𝗺𝗯𝗲𝗿 𝗕𝗼𝘁", url=_bl))
+        _btns.append(types.InlineKeyboardButton("🤖 𝗡𝘂𝗺𝗯𝗲𝗿 𝗕𝗼𝘁", url=_bl, style="danger"))
     if _cl:
-        _btns.append(types.InlineKeyboardButton("📢 𝗠𝗮𝗶𝗻 𝗖𝗵𝗮𝗻𝗻𝗲𝗹", url=_cl))
+        _btns.append(types.InlineKeyboardButton("📢 𝗠𝗮𝗶𝗻 𝗖𝗵𝗮𝗻𝗻𝗲𝗹", url=_cl, style="success"))
     if _btns:
         markup.row(*_btns)
 
@@ -2931,19 +2926,19 @@ def _show_extra_groups(message):
     """Show admin panel for managing extra groups."""
     groups = _group_settings.get("extra_groups", [])
     markup = types.InlineKeyboardMarkup(row_width=1)
-    markup.add(types.InlineKeyboardButton("➕ Add Extra Group", callback_data="eg_add"))
+    markup.add(types.InlineKeyboardButton("➕ Add Extra Group", callback_data="eg_add", style="primary"))
     for i, g in enumerate(groups):
         gid = g.get("id", "?")
         link = g.get("link", "")
         label = link or str(gid)
         markup.add(
-            types.InlineKeyboardButton(f"📢 {label[:30]}", callback_data=f"eg_info:{i}"),
+            types.InlineKeyboardButton(f"📢 {label[:30]}", callback_data=f"eg_info:{i}", style="danger"),
         )
         markup.add(
-            types.InlineKeyboardButton(f"🔗 Bot Link ({i+1})", callback_data=f"eg_setbot:{i}"),
-            types.InlineKeyboardButton(f"📢 Ch Link ({i+1})", callback_data=f"eg_setch:{i}"),
+            types.InlineKeyboardButton(f"🔗 Bot Link ({i+1})", callback_data=f"eg_setbot:{i}", style="success"),
+            types.InlineKeyboardButton(f"📢 Ch Link ({i+1})", callback_data=f"eg_setch:{i}", style="primary"),
         )
-        markup.add(types.InlineKeyboardButton(f"🗑️ Remove #{i+1}", callback_data=f"eg_del:{i}"))
+        markup.add(types.InlineKeyboardButton(f"🗑️ Remove #{i+1}", callback_data=f"eg_del:{i}", style="danger"))
     bot.send_message(
         message.chat.id,
         "📡 <b>EXTRA GROUPS</b>\n"
@@ -2951,6 +2946,7 @@ def _show_extra_groups(message):
         f"🔢 মোট extra group: <b>{len(groups)}টি</b>\n\n"
         "OTP সব group-এ পাঠাতে এখানে group add করো।\n"
         "প্রতিটি group-এর নিজস্ব bot link ও channel link set করতে পারবে।\n\n"
+        "⚡━━━━━━━━━━━━━━⚡",
         reply_markup=markup,
         parse_mode="HTML",
     )
@@ -4210,7 +4206,7 @@ def demo_cfg_inline_markup():
         markup.add(
             types.InlineKeyboardButton(
                 f"{icon}  {cfg['name']}",
-                callback_data=f"cfg_toggle:{cfg['id']}:{action}",
+                callback_data=f"cfg_toggle:{cfg['id']}:{action}", style="success"
             )
         )
     return markup
@@ -4285,13 +4281,13 @@ def show_countries(chat_id, svc):
                 _, flag = get_country_details(nums[0])
                 btns.append(
                     types.InlineKeyboardButton(
-                        f"{flag} {cnt}", callback_data=f"n:{svc}:{cnt}"
+                        f"{flag} {cnt}", callback_data=f"n:{svc}:{cnt}", style="primary"
                     )
                 )
     if btns:
         markup.add(*btns)
     markup.add(
-        types.InlineKeyboardButton("⬅️ 𝗕𝗮𝗰𝗸", callback_data="back_to_services")
+        types.InlineKeyboardButton("⬅️ 𝗕𝗮𝗰𝗸", callback_data="back_to_services", style="danger")
     )
     bot.send_message(
         chat_id,
@@ -4318,10 +4314,10 @@ def start_cmd(message):
     markup = types.InlineKeyboardMarkup()
     _grp = get_otp_group_link() or CHANNEL_1
     if _grp:
-        markup.add(types.InlineKeyboardButton("🔥 𝗢𝗧𝗣 𝗚𝗿𝘂𝗽 𝗝𝗢𝗜𝗡 🔥", url=_grp))
+        markup.add(types.InlineKeyboardButton("🔥 𝗢𝗧𝗣 𝗚𝗿𝘂𝗽 𝗝𝗢𝗜𝗡 🔥", url=_grp, style="success"))
     if get_channel2():
-        markup.add(types.InlineKeyboardButton("📢 𝗠𝗮𝗶𝗻 𝗖𝗵𝗮𝗻𝗻𝗲𝗹 𝗝𝗢𝗜𝗡", url=get_channel2()))
-    markup.add(types.InlineKeyboardButton("✅ 𝗩𝗘𝗥𝗜𝗙𝗬 𝗞𝗢𝗥𝗢 ✅", callback_data="v"))
+        markup.add(types.InlineKeyboardButton("📢 𝗠𝗮𝗶𝗻 𝗖𝗵𝗮𝗻𝗻𝗲𝗹 𝗝𝗢𝗜𝗡", url=get_channel2(), style="primary"))
+    markup.add(types.InlineKeyboardButton("✅ 𝗩𝗘𝗥𝗜𝗙𝗬 𝗞𝗢𝗥𝗢 ✅", callback_data="v", style="danger"))
     bot.send_message(
         message.chat.id,
         get_template("start").format(uname=uname, uid=uid_str),
@@ -4453,10 +4449,10 @@ def _clr_service_markup():
         total = sum(len(v) for v in stock.get(svc, {}).values())
         markup.add(
             types.InlineKeyboardButton(
-                f"{icon} {svc.upper()} ({total})", callback_data=f"clr_s:{svc}"
+                f"{icon} {svc.upper()} ({total})", callback_data=f"clr_s:{svc}", style="success"
             )
         )
-    markup.add(types.InlineKeyboardButton(" Clear ALL Stock", callback_data="clr_all"))
+    markup.add(types.InlineKeyboardButton(" Clear ALL Stock", callback_data="clr_all", style="primary"))
     return markup
 
 
@@ -4470,8 +4466,8 @@ def addpanel_cmd(message):
 def _show_addpanel_type_select(chat_id, uid):
     markup = types.InlineKeyboardMarkup(row_width=1)
     markup.add(
-        types.InlineKeyboardButton("🔑 Username + Password দিয়ে Add", callback_data="aptype:pass"),
-        types.InlineKeyboardButton("🗝️ API Key দিয়ে Add", callback_data="aptype:apikey"),
+        types.InlineKeyboardButton("🔑 Username + Password দিয়ে Add", callback_data="aptype:pass", style="danger"),
+        types.InlineKeyboardButton("🗝️ API Key দিয়ে Add", callback_data="aptype:apikey", style="success"),
     )
     bot.send_message(
         chat_id,
@@ -4628,11 +4624,11 @@ def _ap_get_pass(message):
             force_markup.add(
                 types.InlineKeyboardButton(
                     "⚠️ Force Add করো (Login Skip)",
-                    callback_data=f"forceadd:{panel_id}",
+                    callback_data=f"forceadd:{panel_id}", style="primary"
                 )
             )
             force_markup.add(
-                types.InlineKeyboardButton("❌ বাদ দাও", callback_data=f"forceadd_cancel:{panel_id}")
+                types.InlineKeyboardButton("❌ বাদ দাও", callback_data=f"forceadd_cancel:{panel_id}", style="danger")
             )
             bot.send_message(
                 chat_id,
@@ -4887,9 +4883,9 @@ def _apk_get_key(message):
             markup.add(
                 types.InlineKeyboardButton(
                     "⚠️ Force Add করো (Endpoint Manual দেব)",
-                    callback_data=f"apkforce:{panel_id}|{base_url}|{api_key}",
+                    callback_data=f"apkforce:{panel_id}|{base_url}|{api_key}", style="success"
                 ),
-                types.InlineKeyboardButton("❌ বাদ দাও", callback_data=f"apkforce_cancel"),
+                types.InlineKeyboardButton("❌ বাদ দাও", callback_data=f"apkforce_cancel", style="primary"),
             )
             bot.send_message(
                 chat_id,
@@ -5638,10 +5634,10 @@ def callback_handler(call):
                 err_markup = types.InlineKeyboardMarkup(row_width=1)
                 for name, lnk in not_joined:
                     err_markup.add(types.InlineKeyboardButton(
-                        f"👉 {name}-e JOIN KORO", url=lnk
+                        f"👉 {name}-e JOIN KORO", url=lnk, style="danger"
                     ))
                 err_markup.add(types.InlineKeyboardButton(
-                    "🔄 Verify Koro", callback_data="v"
+                    "🔄 Verify Koro", callback_data="v", style="success"
                 ))
                 try:
                     bot.edit_message_text(
@@ -5681,13 +5677,13 @@ def callback_handler(call):
                         _, flag = get_country_details(nums[0])
                         btns.append(
                             types.InlineKeyboardButton(
-                                f" {flag} {cnt}", callback_data=f"n:{svc}:{cnt}"
+                                f" {flag} {cnt}", callback_data=f"n:{svc}:{cnt}", style="primary"
                             )
                         )
             if btns:
                 markup.add(*btns)
             markup.add(
-                types.InlineKeyboardButton("⬅️ 𝗕𝗮𝗰𝗸", callback_data="back_to_services")
+                types.InlineKeyboardButton("⬅️ 𝗕𝗮𝗰𝗸", callback_data="back_to_services", style="danger")
             )
             bot.edit_message_text(
                 f"🔥 <b>{svc.upper()} — COUNTRY</b> 🔥",
@@ -5797,14 +5793,14 @@ def callback_handler(call):
                     if len(cb.encode()) <= 64:
                         markup.add(
                             types.InlineKeyboardButton(
-                                f"🗑️ {flag} {cnt}  ({len(nums)} টি)", callback_data=cb
+                                f"🗑️ {flag} {cnt}  ({len(nums)} টি)", callback_data=cb, style="success"
                             )
                         )
             if not has_any:
                 markup.add(
-                    types.InlineKeyboardButton("⚠️ Stock nai!", callback_data="clr_menu")
+                    types.InlineKeyboardButton("⚠️ Stock nai!", callback_data="clr_menu", style="primary")
                 )
-            markup.add(types.InlineKeyboardButton("⬅️ Back", callback_data="clr_menu"))
+            markup.add(types.InlineKeyboardButton("⬅️ Back", callback_data="clr_menu", style="danger"))
             bot.edit_message_text(
                 f"🔥 <b>{svc.upper()} — Kon desh clear korbe?</b> 🔥\n\n"
                 f"⬇️ Country choose koro:",
@@ -5823,9 +5819,9 @@ def callback_handler(call):
             markup = types.InlineKeyboardMarkup(row_width=2)
             markup.add(
                 types.InlineKeyboardButton(
-                    "✅ Haa, Delete Koro", callback_data=f"clr_y:{svc}:{cnt}"
+                    "✅ Haa, Delete Koro", callback_data=f"clr_y:{svc}:{cnt}", style="success"
                 ),
-                types.InlineKeyboardButton("❌ Cancel", callback_data=f"clr_s:{svc}"),
+                types.InlineKeyboardButton("❌ Cancel", callback_data=f"clr_s:{svc}", style="primary"),
             )
             bot.edit_message_text(
                 f"⚠️ <b>CONFIRM DELETE</b> ⚠️\n\n"
@@ -5849,8 +5845,8 @@ def callback_handler(call):
                 save_stock()
             markup = types.InlineKeyboardMarkup(row_width=2)
             markup.add(
-                types.InlineKeyboardButton("🗑️ Aro Clear", callback_data=f"clr_s:{svc}"),
-                types.InlineKeyboardButton("🔙 Services", callback_data="clr_menu"),
+                types.InlineKeyboardButton("🗑️ Aro Clear", callback_data=f"clr_s:{svc}", style="danger"),
+                types.InlineKeyboardButton("🔙 Services", callback_data="clr_menu", style="success"),
             )
             bot.edit_message_text(
                 f"✅🔥 <b>DELETE COMPLETE!</b> 🔥✅\n\n"
@@ -5873,9 +5869,9 @@ def callback_handler(call):
             markup = types.InlineKeyboardMarkup(row_width=2)
             markup.add(
                 types.InlineKeyboardButton(
-                    " Haa, SOB Clear", callback_data="clr_allok"
+                    " Haa, SOB Clear", callback_data="clr_allok", style="primary"
                 ),
-                types.InlineKeyboardButton("❌ Cancel", callback_data="clr_menu"),
+                types.InlineKeyboardButton("❌ Cancel", callback_data="clr_menu", style="danger"),
             )
             bot.edit_message_text(
                 f"☠️⚠️ <b>CLEAR ALL CONFIRM</b> ⚠️☠️\n\n"
@@ -6243,8 +6239,8 @@ def callback_handler(call):
                 return
             markup = types.InlineKeyboardMarkup(row_width=2)
             markup.add(
-                types.InlineKeyboardButton("✅ Haa, Remove", callback_data="grp_removeok"),
-                types.InlineKeyboardButton("❌ Cancel", callback_data="grp_info"),
+                types.InlineKeyboardButton("✅ Haa, Remove", callback_data="grp_removeok", style="success"),
+                types.InlineKeyboardButton("❌ Cancel", callback_data="grp_info", style="primary"),
             )
             bot.answer_callback_query(call.id)
             bot.edit_message_text(
@@ -6274,11 +6270,11 @@ def callback_handler(call):
                 short = c_name.split()[0] if c_name and c_name != "Unknown" else ""
                 label = f"{flag} {short} | {rng}" if short else f"{flag} {rng}"
                 rng_btns.append(types.InlineKeyboardButton(
-                    label, callback_data=f"v2rng:{prefix}:{sid}"
+                    label, callback_data=f"v2rng:{prefix}:{sid}", style="danger"
                 ))
             if rng_btns:
                 markup.add(*rng_btns)
-            markup.add(types.InlineKeyboardButton("⬅️ Back", callback_data="v2back"))
+            markup.add(types.InlineKeyboardButton("⬅️ Back", callback_data="v2back", style="success"))
             bot.edit_message_text(
                 f"📡 <b>V2 — {_v2_svc_emoji(sid)} {sid}</b>\n\n"
                 f"🔢 <b>Range select koro:</b>\n"
@@ -6329,10 +6325,7 @@ def callback_handler(call):
             markup, has_btns = _v2_build_console_markup()
             if has_btns:
                 bot.edit_message_text(
-                    "🔴 <b>LIVE RANGE</b>\n"
-                    "⚡━━━━━━━━━━━━━━⚡\n\n"
-                    "📱 <b>Service সিলেক্ট করো:</b>\n\n"
-                    "⚡━━━━━━━━━━━━━━⚡",
+                    "🌐 <b>Select Platform</b>",
                     call.message.chat.id, call.message.message_id,
                     reply_markup=markup, parse_mode="HTML"
                 )
@@ -6345,10 +6338,7 @@ def callback_handler(call):
             emoji = _v2_svc_emoji(sid)
             if has_btns:
                 bot.edit_message_text(
-                    f"🔴 <b>LIVE RANGE — {emoji} {sid}</b>\n"
-                    "⚡━━━━━━━━━━━━━━⚡\n\n"
-                    "🌍 <b>দেশ সিলেক্ট করো — সাথে সাথে নাম্বার পাবে:</b>\n\n"
-                    "⚡━━━━━━━━━━━━━━⚡",
+                    "🌏 <b>Select Country</b>",
                     call.message.chat.id, call.message.message_id,
                     reply_markup=markup, parse_mode="HTML"
                 )
@@ -7027,7 +7017,7 @@ def text_handler(message):
     if txt in ("☎️ 𝗩𝟭 𝗡𝗨𝗠𝗕𝗔𝗥 ☎️", "☎️ 𝗡𝗨𝗠𝗕𝗔𝗥 ☎️"):
         show_services(message)
 
-    elif txt == "📲 𝗚𝗘𝗧 𝗡𝗨𝗠𝗕𝗘𝗥","style"="Danger"
+    elif txt == "📲 𝗚𝗘𝗧 𝗡𝗨𝗠𝗕𝗘𝗥":
         if _group_settings.get("v2_user_mode", False):
             _v2_show_console(message.chat.id)
         else:
@@ -7105,7 +7095,7 @@ def text_handler(message):
     elif txt == "📞 𝗦𝗔𝗣𝗢𝗥𝗧":
         markup = types.InlineKeyboardMarkup()
         markup.add(
-            types.InlineKeyboardButton("📩 Support Team", url="https://t.me/Tom_9805")
+            types.InlineKeyboardButton("📩 Support Team", url="https://t.me/Tom_9805", style="primary")
         )
         bot.send_message(
             message.chat.id,
@@ -7297,7 +7287,7 @@ def text_handler(message):
             for s in _services:
                 markup.add(types.InlineKeyboardButton(
                     f"🗑️ {s['label']}  [{s['key']}]",
-                    callback_data=f"rmsvc:{s['key']}",
+                    callback_data=f"rmsvc:{s['key']}", style="danger"
                 ))
             bot.send_message(
                 message.chat.id,
@@ -7323,7 +7313,7 @@ def text_handler(message):
                 markup.add(
                     types.InlineKeyboardButton(
                         f"{st} {p.get('username','?')} — {p.get('host','?')}",
-                        callback_data=f"rmpanel:{pid}",
+                        callback_data=f"rmpanel:{pid}", style="success"
                     )
                 )
             bot.send_message(
@@ -7364,7 +7354,7 @@ def text_handler(message):
                 svcs = ", ".join(cfg.get("services") or ["?"])
                 markup.add(types.InlineKeyboardButton(
                     f"🗑️ {cfg['name']}  [{svcs}  |  {cfg['interval']}s]",
-                    callback_data=f"rmcfg:{cfg['id']}",
+                    callback_data=f"rmcfg:{cfg['id']}", style="primary"
                 ))
             bot.send_message(
                 message.chat.id,
@@ -7483,8 +7473,8 @@ def text_handler(message):
         current_esc = _html.escape(current[:600])
         vars_hint = _TEMPLATE_VARS.get("otp_dm_v2", "")
         markup = types.InlineKeyboardMarkup(row_width=1)
-        markup.add(types.InlineKeyboardButton("✏️ Edit V2 DM Format", callback_data="editmsg:otp_dm_v2"))
-        markup.add(types.InlineKeyboardButton("🔄 Default এ Reset", callback_data="editmsg_reset:otp_dm_v2"))
+        markup.add(types.InlineKeyboardButton("✏️ Edit V2 DM Format", callback_data="editmsg:otp_dm_v2", style="danger"))
+        markup.add(types.InlineKeyboardButton("🔄 Default এ Reset", callback_data="editmsg_reset:otp_dm_v2", style="success"))
         bot.send_message(
             message.chat.id,
             "📡 <b>V2 Message Format</b>\n"
@@ -8010,32 +8000,32 @@ def _settings_markup():
     grp_send_label = "📤 Group Send: 🟢 ON" if grp_send else "📤 Group Send: 🔴 OFF"
     markup = types.InlineKeyboardMarkup(row_width=2)
     markup.add(
-        types.InlineKeyboardButton("🔗 Group Link", callback_data="grp_setlink"),
-        types.InlineKeyboardButton("🆔 Group Chat ID", callback_data="grp_setid"),
+        types.InlineKeyboardButton("🔗 Group Link", callback_data="grp_setlink", style="primary"),
+        types.InlineKeyboardButton("🆔 Group Chat ID", callback_data="grp_setid", style="danger"),
     )
     markup.add(
-        types.InlineKeyboardButton(auto_label, callback_data="set_autodel"),
-        types.InlineKeyboardButton("🗑️ Remove Group", callback_data="grp_remove"),
+        types.InlineKeyboardButton(auto_label, callback_data="set_autodel", style="success"),
+        types.InlineKeyboardButton("🗑️ Remove Group", callback_data="grp_remove", style="primary"),
     )
     markup.add(
-        types.InlineKeyboardButton(grp_send_label, callback_data="toggle_grp_send"),
+        types.InlineKeyboardButton(grp_send_label, callback_data="toggle_grp_send", style="danger"),
     )
     markup.add(
-        types.InlineKeyboardButton(f"⚜ Number Tag: {grp_tag}", callback_data="set_group_tag"),
+        types.InlineKeyboardButton(f"⚜ Number Tag: {grp_tag}", callback_data="set_group_tag", style="success"),
     )
     markup.add(
-        types.InlineKeyboardButton(f"🔢 Numbers Per User: {n_batch}টি", callback_data="set_num_batch"),
+        types.InlineKeyboardButton(f"🔢 Numbers Per User: {n_batch}টি", callback_data="set_num_batch", style="primary"),
     )
     markup.add(
-        types.InlineKeyboardButton("📢 Join Channel", callback_data="set_channel2"),
-        types.InlineKeyboardButton("🤖 Bot Link", callback_data="set_botlink"),
+        types.InlineKeyboardButton("📢 Join Channel", callback_data="set_channel2", style="danger"),
+        types.InlineKeyboardButton("🤖 Bot Link", callback_data="set_botlink", style="success"),
     )
     v3_on = _group_settings.get("v3_enabled", True)
     v3_label = "🆕 V3 Panel: 🟢 ON" if v3_on else "🆕 V3 Panel: 🔴 OFF"
-    markup.add(types.InlineKeyboardButton(v3_label, callback_data="toggle_v3"))
+    markup.add(types.InlineKeyboardButton(v3_label, callback_data="toggle_v3", style="primary"))
     v2_mode = _group_settings.get("v2_user_mode", False)
     v2_mode_label = "📲 Get Number Mode: 🟢 ON" if v2_mode else "📲 Get Number Mode: 🔴 OFF"
-    markup.add(types.InlineKeyboardButton(v2_mode_label, callback_data="toggle_v2_mode"))
+    markup.add(types.InlineKeyboardButton(v2_mode_label, callback_data="toggle_v2_mode", style="danger"))
     return markup
 
 
@@ -8315,12 +8305,12 @@ def _admin_add_get_id(message):
     _pending_admin_uid[uid] = new_uid
     dur_kb = types.InlineKeyboardMarkup(row_width=3)
     dur_kb.add(
-        types.InlineKeyboardButton("1 Mash", callback_data=f"aadur:{new_uid}:1"),
-        types.InlineKeyboardButton("2 Mash", callback_data=f"aadur:{new_uid}:2"),
-        types.InlineKeyboardButton("3 Mash", callback_data=f"aadur:{new_uid}:3"),
+        types.InlineKeyboardButton("1 Mash", callback_data=f"aadur:{new_uid}:1", style="success"),
+        types.InlineKeyboardButton("2 Mash", callback_data=f"aadur:{new_uid}:2", style="primary"),
+        types.InlineKeyboardButton("3 Mash", callback_data=f"aadur:{new_uid}:3", style="danger"),
     )
     dur_kb.add(
-        types.InlineKeyboardButton("❌ Cancel", callback_data="aadur_cancel"),
+        types.InlineKeyboardButton("❌ Cancel", callback_data="aadur_cancel", style="success"),
     )
     raw_n = user_names.get(str(new_uid), "")
     name_str = raw_n if isinstance(raw_n, str) else raw_n.get("first_name", str(new_uid))
@@ -8354,7 +8344,7 @@ def _show_remove_admin(message):
         else:
             name = raw or str(aid)
         markup.add(types.InlineKeyboardButton(
-            f"🗑️ {name} [{aid}]", callback_data=f"rmadmin:{aid}"
+            f"🗑️ {name} [{aid}]", callback_data=f"rmadmin:{aid}", style="primary"
         ))
     bot.send_message(
         message.chat.id,
@@ -8580,8 +8570,8 @@ def _cc_addrange_step(message):
 def _show_edit_messages_menu(message):
     markup = types.InlineKeyboardMarkup(row_width=1)
     for key, label in _TEMPLATE_LABELS.items():
-        markup.add(types.InlineKeyboardButton(label, callback_data=f"editmsg:{key}"))
-    markup.add(types.InlineKeyboardButton("🔄 সব Default এ Reset করো", callback_data="editmsg_reset_all"))
+        markup.add(types.InlineKeyboardButton(label, callback_data=f"editmsg:{key}", style="danger"))
+    markup.add(types.InlineKeyboardButton("🔄 সব Default এ Reset করো", callback_data="editmsg_reset_all", style="success"))
     bot.send_message(
         message.chat.id,
         "✏️🔥 <b>মেসেজ ফরমেট এডিট</b> 🔥✏️\n\n"
