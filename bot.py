@@ -310,7 +310,7 @@ _group_settings = load_json(GROUP_SETTINGS_FILE, {
     'group_otp_send': True,
     'group_tag': 'KHALIFA',
     'numbers_per_batch': 2,
-    'v2_active_panel': 'stex',
+    'v2_active_panel': 'voltex',
     'v3_enabled': False,
     'extra_groups': [{'id': -1002414484554, 'bot_link': 'https://t.me/king_2_otp_bot', 'channel_link': 'https://t.me/facboo578'}],
     'v2_user_mode': True,
@@ -360,7 +360,7 @@ def _build_numbers_display_kb(svc, scnt, display_nums, flag, c_name, is_v2=False
     # One row per number
     for dnum in display_nums:
         keyboard.append([types.InlineKeyboardButton(
-            f"{flag} {dnum}",
+            f"{dnum}",
             copy_text=types.CopyTextButton(text=dnum), style="primary",
             **_flag_btn_kwargs(flag, "5447508713181034519")
         )])
@@ -611,6 +611,116 @@ CUSTOM_EMOJI_FILE = "custom_emojis.json"
 _custom_emojis: dict = load_json(CUSTOM_EMOJI_FILE, {"flags": {}, "services": {}})
 _custom_emoji_lock = threading.Lock()
 
+_HARDCODED_FLAGS = {
+    "🇮🇶": "5976458232313420307",
+    "🇪🇬": "5976310790381115423",
+    "🇾🇪": "5976685311529327157",
+    "🇸🇦": "5976726495970729818",
+    "🇧🇭": "5976668522502166844",
+    "🇰🇼": "5976679732366809576",
+    "🇶🇦": "5976723966234991338",
+    "🇦🇪": "5976594713489185156",
+    "🇴🇲": "5976284621145381432",
+    "🇸🇩": "5976733342148598412",
+    "🇹🇳": "5976645965333929511",
+    "🇵🇸": "5976410742860027765",
+    "🇯🇴": "5976421677846764717",
+    "🇱🇧": "5976529279662430823",
+    "🇩🇿": "5976325273010837563",
+    "🇲🇦": "5976435580655901165",
+    "🇸🇴": "5976732113787966649",
+    "🇩🇯": "5976613946352736850",
+    "🇰🇲": "5976698870741083962",
+    "🇱🇾": "5976334146413272193",
+    "🇺🇸": "5976694588658686266",
+    "🇺🇦": "5976654508023880370",
+    "🇵🇱": "5976482692152170488",
+    "🇰🇿": "5976819202839812519",
+    "🇨🇳": "5976702693261975275",
+    "🇦🇿": "5976582940983827573",
+    "🇪🇺": "5976278161514568573",
+    "🇦🇲": "5976638015349463422",
+    "🇷🇺": "5976725997754521724",
+    "🇺🇿": "5976637328154696110",
+    "🇩🇪": "5976493356555968244",
+    "🇯🇵": "5976688764683033429",
+    "🇹🇷": "5976491638569048813",
+    "🇧🇾": "5976363304946245889",
+    "🇬🇧": "5976531856642807659",
+    "🇮🇳": "5976491823252642237",
+    "🇧🇷": "5976287034917001256",
+    "🇿🇲": "5976750457593272380",
+    "🏴󐁧󐁢󐁷󐁬󐁳󐁿": "5976752617961822505",
+    "🇻🇮": "5976644294591650501",
+    "🇻🇳": "5976537109387810524",
+    "🇻🇦": "5976413624783083695",
+    "🇻🇺": "5978614254356404774",
+    "🇺🇾": "5976387133424803250",
+    "🇺🇬": "5976539578994006362",
+    "🇹🇲": "5978875276698851977",
+    "🇹🇹": "5976426599879285465",
+    "🇹🇬": "5976576434108372678",
+    "🇹🇭": "5976342573139106020",
+    "🇹🇿": "5976297192514656545",
+    "🇹🇯": "5976597573937404746",
+    "🇨🇭": "5976561599291333244",
+    "🇸🇪": "5976775179425028923",
+    "🇸🇿": "5976741725924759442",
+    "🇸🇷": "5976300113092417676",
+    "🇪🇸": "5976424031488843687",
+    "🇱🇰": "5976302702957697673",
+    "🇸🇸": "5976604952691218010",
+    "🇰🇷": "5976617773168597444",
+    "🇿🇦": "5976697079739718234",
+    "🇸🇧": "5976631860661329134",
+    "🇸🇮": "5978926704637253502",
+    "🇸🇰": "5976365662883290025",
+    "🇸🇬": "5976545437329399582",
+    "🇸🇱": "5976596925397342449",
+    "🇸🇨": "5978929268732729465",
+    "🇷🇸": "5976463012612020480",
+    "🏴󐁧󐁢󐁳󐁣󐁿": "5976465473628282873",
+    "🇸🇹": "5976699343187482779",
+    "🇸🇳": "5976483722944320690",
+    "🇸🇲": "5976790357839452073",
+    "🇼🇸": "5976637886500444833",
+    "🇰🇳": "5976520505044244501",
+    "🇻🇨": "5976353941917538351",
+    "🇱🇨": "5976475772959857175",
+    "🇷🇼": "5976558287871547862",
+    "🇷🇴": "5976646540859546652",
+    "🇵🇷": "5976449608019090815",
+    "🇵🇭": "5976772181537858123",
+    "🇵🇹": "5976327106961873123",
+    "🇵🇪": "5976420350701869282",
+    "🇵🇾": "5976609745874721028",
+    "🇵🇬": "5976504321607475018",
+    "🇵🇦": "5976690366705834196",
+    "🇵🇼": "5976497857681693092",
+    "🇵🇰": "5976723210320748190",
+    "🇳🇴": "5976327557933439693",
+    "🇳🇬": "5976523777809323703",
+    "🇳🇪": "5976647932428950438",
+    "🇳🇿": "5976512722563503846",
+    "🇳🇱": "5976438003017456076",
+    "🇳🇵": "5976563609336026965",
+    "🇳🇦": "5976603874654426417",
+    "🇲🇿": "5976389130584594356",
+    "🇲🇪": "5976333948844776590",
+    "🇲🇽": "5976658300480002579",
+    "🇲🇳": "5976560392405522726",
+    "🇲🇨": "5976425521842494767",
+    "🇲🇩": "5976792247625064355",
+    "🏴󐁧󐁢󐁳󐁣󐁴󐁿": "5976465473628282873",
+}
+# Merge hardcoded flags — user-saved overrides take priority
+_hf_merged = dict(_HARDCODED_FLAGS)
+_hf_merged.update(_custom_emojis.get("flags", {}))
+_custom_emojis["flags"] = _hf_merged
+del _hf_merged
+# Persist merged flags immediately so restarts don't lose hardcoded entries
+save_json(CUSTOM_EMOJI_FILE, _custom_emojis)
+
 def _save_custom_emojis():
     with _custom_emoji_lock:
         save_json(CUSTOM_EMOJI_FILE, _custom_emojis)
@@ -765,7 +875,8 @@ def send_otp_message(chat_id, otp, number, seconds, service="", sms_body=""):
     _emoji_number_pre  = _get_dm_emoji("number_pre")
     _emoji_country_pre = _get_dm_emoji("country_pre")
     _emoji_country_post= _get_dm_emoji("country_post")
-    _grp_vars = dict(svc=svc, number=mask_number(number), tagged_number=_tagged,
+    _grp_vars = {**_emoji_extra,
+                 **dict(svc=svc, number=mask_number(number), tagged_number=_tagged,
                      taged_number=_tagged,
                      country=c_name, flag=_rflag, otp=otp_str,
                      sms_body=_sms_val, sms=_sms_val,
@@ -773,9 +884,9 @@ def send_otp_message(chat_id, otp, number, seconds, service="", sms_body=""):
                      svc_emoji=_svc_emoji_html,
                      emoji_number_pre=_emoji_number_pre,
                      emoji_country_pre=_emoji_country_pre,
-                     emoji_country_post=_emoji_country_post,
-                     **_emoji_extra)
-    _dm_vars  = dict(svc=svc, number=(number if str(number).startswith("+") else "+" + str(number)),
+                     emoji_country_post=_emoji_country_post)}
+    _dm_vars  = {**_emoji_extra,
+                 **dict(svc=svc, number=(number if str(number).startswith("+") else "+" + str(number)),
                      tagged_number=_tagged, taged_number=_tagged,
                      country=c_name, flag=_rflag, otp=otp_str,
                      sms_body=_sms_val, sms=_sms_val,
@@ -783,8 +894,7 @@ def send_otp_message(chat_id, otp, number, seconds, service="", sms_body=""):
                      svc_emoji=_svc_emoji_html,
                      emoji_number_pre=_emoji_number_pre,
                      emoji_country_pre=_emoji_country_pre,
-                     emoji_country_post=_emoji_country_post,
-                     **_emoji_extra)
+                     emoji_country_post=_emoji_country_post)}
 
     class _SafeDict(dict):
         """Return the original placeholder for any missing key so the template
@@ -854,7 +964,7 @@ def send_otp_message(chat_id, otp, number, seconds, service="", sms_body=""):
         # If custom template caused a send error, retry with default HTML
         if err and not used_default:
             print(f"[OTP-GROUP] ⚠️ Send failed (custom template HTML error?): {err} — retrying with default")
-            message = _ensure_code_tag(_DEFAULT_TEMPLATES["otp_group"].format(**_grp_vars), otp_str)
+            message = _ensure_code_tag(_DEFAULT_TEMPLATES["otp_group"].format_map(_SafeDict(_grp_vars)), otp_str)
             sent, rl, err = _try_send("GROUP-DEFAULT", chat_id, message, markup)
 
         # Last resort: strip HTML and send as plain text
@@ -2810,9 +2920,9 @@ def _v2_build_country_markup(sid):
     for prefix in cfg.get("ranges", []):
         c_name, flag = get_country_details(prefix)
         if c_name and c_name not in ("Unknown", ""):
-            label = f"{flag} {c_name}"
+            label = f"{c_name}"
         else:
-            label = f"{flag} অজানা দেশ"
+            label = f"অজানা দেশ"
         btns.append(types.InlineKeyboardButton(
             label, callback_data=f"v2csvc:{sid}:{prefix}", style="primary",
             **_flag_btn_kwargs(flag)
@@ -2850,7 +2960,7 @@ def _cc_service_detail_markup(sid):
     for prefix in cfg.get("ranges", []):
         c_name, flag = get_country_details(prefix)
         if c_name and c_name not in ("Unknown", ""):
-            rlabel = f"🗑️ {flag} {c_name} ({prefix})"
+            rlabel = f"🗑️ {c_name} ({prefix})"
         else:
             rlabel = f"🗑️ ({prefix})"
         markup.add(types.InlineKeyboardButton(rlabel, callback_data=f"cc_delrange:{sid}:{prefix}", style="danger",
@@ -4548,7 +4658,7 @@ def show_countries(chat_id, svc):
                 _, flag = get_country_details(nums[0])
                 btns.append(
                     types.InlineKeyboardButton(
-                        f"{flag} {cnt}", callback_data=f"n:{svc}:{cnt}", style="primary",
+                        f"{cnt}", callback_data=f"n:{svc}:{cnt}", style="primary",
                         **_flag_btn_kwargs(flag)
                     )
                 )
@@ -5970,7 +6080,7 @@ def callback_handler(call):
                 if nums:
                     _, flag = get_country_details(nums[0])
                     btns.append(types.InlineKeyboardButton(
-                        f"{flag} {cnt}",
+                        f"{cnt}",
                         callback_data=f"n:{svc_key}:{cnt}",
                         style="primary",
                         **_flag_btn_kwargs(flag)
@@ -6008,7 +6118,7 @@ def callback_handler(call):
                         _, flag = get_country_details(nums[0])
                         btns.append(
                             types.InlineKeyboardButton(
-                                f" {flag} {cnt}", callback_data=f"n:{svc}:{cnt}", style="primary",
+                                f"{cnt}", callback_data=f"n:{svc}:{cnt}", style="primary",
                                 **_flag_btn_kwargs(flag)
                             )
                         )
@@ -6125,7 +6235,7 @@ def callback_handler(call):
                     if len(cb.encode()) <= 64:
                         markup.add(
                             types.InlineKeyboardButton(
-                                f"🗑️ {flag} {cnt}  ({len(nums)} টি)", callback_data=cb, style="success",
+                                f"🗑️ {cnt}  ({len(nums)} টি)", callback_data=cb, style="success",
                                 **_flag_btn_kwargs(flag)
                             )
                         )
@@ -6463,7 +6573,7 @@ def callback_handler(call):
                 bot.delete_message(call.message.chat.id, call.message.message_id)
             except Exception:
                 pass
-            _show_msg_icons_menu(call.message)
+            _show_edit_messages_menu(call.message)
 
         elif data in ("msgicon_close", "msgicon_noop"):
             if data == "msgicon_close":
@@ -6654,7 +6764,7 @@ def callback_handler(call):
                 prefix = rng.rstrip("X")
                 c_name, flag = get_country_details(prefix)
                 short = c_name.split()[0] if c_name and c_name != "Unknown" else ""
-                label = f"{flag} {short} | {rng}" if short else f"{flag} {rng}"
+                label = f"{short} | {rng}" if short else f"{rng}"
                 rng_btns.append(types.InlineKeyboardButton(
                     label, callback_data=f"v2rng:{prefix}:{sid}", style="danger",
                     **_flag_btn_kwargs(flag)
@@ -7893,9 +8003,6 @@ def text_handler(message):
     elif txt == "📡 𝗘𝘅𝘁𝗿𝗮 𝗚𝗿𝗼𝘂𝗽𝘀" and uid in ADMIN_IDS:
         _show_extra_groups(message)
 
-    elif txt == "✨ 𝗠𝗲𝘀𝘀𝗮𝗴𝗲 𝗜𝗰𝗼𝗻𝘀" and uid in ADMIN_IDS:
-        _show_msg_icons_menu(message)
-
     elif txt == "🎨 𝗖𝘂𝘀𝘁𝗼𝗺 𝗘𝗺𝗼𝗷𝗶" and uid in ADMIN_IDS:
         _show_custom_emoji_menu(message)
 
@@ -7905,11 +8012,55 @@ def text_handler(message):
             message.chat.id,
             "🏳️ <b>Flag Emoji Set</b>\n\n"
             "Flag emoji আর তার custom emoji ID পাঠাও:\n\n"
-            "<b>ফরম্যাট:</b> <code>🇧🇩 5432198765432198765</code>\n\n"
-            "<i>প্রতিটি flag আলাদা message-এ পাঠাও।</i>",
+            "<b>একটি:</b> <code>🇧🇩 5432198765432198765</code>\n\n"
+            "<b>বাল্ক (numbered list):</b>\n"
+            "<code>1. 🇧🇩 5432198765432198765\n2. 🇺🇸 5976694588658686266</code>\n\n"
+            "<i>অথবা সব flag একসাথে দিতে 🌍 All Flags JSON Set ব্যবহার করো।</i>",
             parse_mode="HTML"
         )
         bot.register_next_step_handler(message, _custom_emoji_input)
+
+    elif txt == "🌍 All Flags JSON Set" and uid in ADMIN_IDS:
+        _custom_emoji_state[uid] = "flag_bulk_json"
+        with _custom_emoji_lock:
+            cur = dict(_custom_emojis.get("flags", {}))
+        cur_preview = json.dumps(cur, ensure_ascii=False, indent=2) if cur else "{}"
+        bot.send_message(
+            message.chat.id,
+            "🌍 <b>All Flags JSON Set</b>\n\n"
+            "একটি JSON পাঠাও যাতে <b>সব</b> flag emoji আর তাদের custom ID থাকবে।\n\n"
+            "<b>ফরম্যাট:</b>\n"
+            "<code>{\n"
+            '  "🇧🇩": "5432198765432198765",\n'
+            '  "🇺🇸": "5976694588658686266",\n'
+            '  "🇮🇳": "5195261305332736014"\n'
+            "}</code>\n\n"
+            "📌 <b>বর্তমান flags (JSON):</b>\n"
+            f"<pre>{cur_preview}</pre>\n\n"
+            "<i>নতুন JSON পাঠালে বর্তমানের সাথে merge হবে (overwrite নয়)।\n"
+            "সব মুছে নতুন করতে আগে 🗑️ Flag Emoji Del দিয়ে মুছো।</i>",
+            parse_mode="HTML"
+        )
+        bot.register_next_step_handler(message, _custom_emoji_input)
+
+    elif txt == "📋 Flag JSON Export" and uid in ADMIN_IDS:
+        with _custom_emoji_lock:
+            cur = dict(_custom_emojis.get("flags", {}))
+        if not cur:
+            bot.send_message(message.chat.id,
+                "📋 এখনো কোনো flag emoji সেট নেই।\n\n"
+                "🌍 All Flags JSON Set দিয়ে যোগ করো।")
+        else:
+            exported = json.dumps(cur, ensure_ascii=False, indent=2)
+            bot.send_message(
+                message.chat.id,
+                f"📋 <b>Current Flag Emojis JSON</b>\n\n"
+                f"<pre>{exported}</pre>\n\n"
+                f"<i>মোট {len(cur)}টি flag সেট আছে।\n"
+                f"Copy করে edit করে 🌍 All Flags JSON Set-এ paste করো।</i>",
+                parse_mode="HTML"
+            )
+        _show_custom_emoji_menu(message)
 
     elif txt == "🎯 Service Emoji Set" and uid in ADMIN_IDS:
         _custom_emoji_state[uid] = "service"
@@ -9085,7 +9236,7 @@ def _set_msg_icon_step(message):
     with _custom_emoji_lock:
         _custom_emojis.setdefault("msg_slots", {})[slot_key] = {"id": custom_emoji_id, "fb": fallback_char}
     _save_custom_emojis()
-    _show_msg_icons_menu(message, note=f"✅ <b>{label}</b> — custom emoji সেট হয়েছে!")
+    _show_edit_messages_menu(message, note=f"✅ <b>{label}</b> — custom emoji সেট হয়েছে!")
 
 
 def _show_custom_emoji_menu(message, note=""):
@@ -9097,7 +9248,10 @@ def _show_custom_emoji_menu(message, note=""):
         slots_set   = dict(_custom_emojis.get("msg_slots", {}))
         dm_e_set    = dict(_custom_emojis.get("dm_emoji", {}))
 
-    flag_lines = "\n".join(f"  {k} → <code>{v}</code>" for k, v in flags_set.items()) or "  (কিছু নেই — 🏳️ Flag Emoji Set দিয়ে যোগ করো)"
+    if len(flags_set) > 8:
+        flag_lines = f"  ✅ মোট <b>{len(flags_set)}টি</b> flag custom emoji সেট আছে\n  (📋 Flag JSON Export দিয়ে সব দেখো)"
+    else:
+        flag_lines = "\n".join(f"  {k} → <code>{v}</code>" for k, v in flags_set.items()) or "  (কিছু নেই — 🏳️ Flag Emoji Set দিয়ে যোগ করো)"
     svc_lines  = "\n".join(f"  {k} → <code>{v}</code>" for k, v in svcs_set.items())  or "  (কিছু নেই)"
     btn_lines  = "\n".join(f"  <code>{k}</code> → <code>{v}</code>" for k, v in btns_set.items()) or "  (কিছু নেই)"
     slot_lines = "\n".join(f"  {{emoji_{k}}} → {v.get('fb','?')} (id:<code>{v.get('id','')}</code>)" for k, v in slots_set.items()) or "  (কিছু নেই)"
@@ -9127,6 +9281,7 @@ def _show_custom_emoji_menu(message, note=""):
     )
     mk = types.ReplyKeyboardMarkup(resize_keyboard=True)
     mk.add("🏳️ Flag Emoji Set", "🎯 Service Emoji Set")
+    mk.add("🌍 All Flags JSON Set", "📋 Flag JSON Export")
     mk.add("🗑️ Flag Emoji Del", "🗑️ Service Emoji Del")
     mk.add("🔘 Button Emoji Set", "🗑️ Button Emoji Del")
     mk.add("💬 Msg Emoji Set", "🗑️ Msg Emoji Del")
@@ -9171,6 +9326,60 @@ def _custom_emoji_input(message):
         _save_custom_emojis()
         added = "\n".join(f"  {k} → <code>{v}</code>" for k, v in parsed.items())
         _show_custom_emoji_menu(message, note=f"✅ {len(parsed)}টি flag সেট হয়েছে:\n{added}")
+
+    elif mode == "flag_bulk_json":
+        # Accept a JSON object: {"🇧🇩": "123456789", "🇺🇸": "987654321", ...}
+        # Also accept line-by-line: 🇧🇩 123456789\n🇺🇸 987654321
+        import re as _re
+        parsed = {}
+        err_msg = ""
+        # Try JSON first
+        raw = txt.strip()
+        # Strip markdown code fences if present
+        raw = _re.sub(r'^```[a-z]*\n?', '', raw, flags=_re.IGNORECASE)
+        raw = _re.sub(r'\n?```$', '', raw)
+        raw = raw.strip()
+        try:
+            data = json.loads(raw)
+            if not isinstance(data, dict):
+                raise ValueError("JSON must be an object/dict")
+            for k, v in data.items():
+                v_str = str(v).strip()
+                if v_str.isdigit():
+                    parsed[k.strip()] = v_str
+                else:
+                    err_msg += f"⚠️ <code>{k}</code> — ID ভুল (<code>{v}</code>), skip করা হয়েছে\n"
+        except json.JSONDecodeError:
+            # Fall back to line-by-line parsing
+            lines = [l.strip() for l in txt.splitlines() if l.strip()]
+            for line in lines:
+                clean = _re.sub(r'^\d+[\.\)\-]\s*', '', line).strip()
+                tokens = clean.split()
+                if len(tokens) == 2 and tokens[1].isdigit():
+                    parsed[tokens[0]] = tokens[1]
+
+        if not parsed:
+            bot.send_message(message.chat.id,
+                "❌ কিছু parse করা যায়নি!\n\n"
+                "<b>JSON ফরম্যাট:</b>\n"
+                "<code>{\n"
+                '  "🇧🇩": "5432198765432198765",\n'
+                '  "🇺🇸": "5976694588658686266"\n'
+                "}</code>\n\n"
+                "<b>Line-by-line ফরম্যাটও চলবে:</b>\n"
+                "<code>🇧🇩 5432198765432198765\n🇺🇸 5976694588658686266</code>\n\n"
+                "আবার পাঠাও:",
+                parse_mode="HTML")
+            _custom_emoji_state[uid] = mode
+            return
+        with _custom_emoji_lock:
+            _custom_emojis.setdefault("flags", {}).update(parsed)
+        _save_custom_emojis()
+        added_lines = "\n".join(f"  {k} → <code>{v}</code>" for k, v in parsed.items())
+        note = f"✅ {len(parsed)}টি flag JSON থেকে সেট হয়েছে:\n{added_lines}"
+        if err_msg:
+            note += f"\n\n{err_msg}"
+        _show_custom_emoji_menu(message, note=note)
 
     elif mode == "service":
         # Format: INSTAGRAM 5319160079465857105
@@ -9341,7 +9550,7 @@ def _go_admin_panel(message, text="🔥 <b>ADMIN PANEL</b>"):
     m_admin.add("🔀 𝗩𝟮 𝗣𝗮𝗻𝗲𝗹 𝗦𝗲𝗹𝗲𝗰𝘁")
     m_admin.add("🎛️ 𝗟𝗶𝘃𝗲 𝗖𝗼𝗻𝘀𝗼𝗹𝗲 𝗖𝗼𝗻𝗳𝗶𝗴")
     m_admin.add("📡 𝗘𝘅𝘁𝗿𝗮 𝗚𝗿𝗼𝘂𝗽𝘀")
-    m_admin.add("✨ 𝗠𝗲𝘀𝘀𝗮𝗴𝗲 𝗜𝗰𝗼𝗻𝘀", "🎨 𝗖𝘂𝘀𝘁𝗼𝗺 𝗘𝗺𝗼𝗷𝗶")
+    m_admin.add("🎨 𝗖𝘂𝘀𝘁𝗼𝗺 𝗘𝗺𝗼𝗷𝗶")
     m_admin.add("⬅️🔙 𝗨𝘀𝗲𝗿 𝗠𝗲𝗻𝘂")
     bot.send_message(
         message.chat.id,
@@ -9399,20 +9608,64 @@ def _cc_addrange_step(message):
     _go_admin_panel(message)
 
 
-# ── Edit Message Templates ──────────────────────────────────────────────────────
+# ── Edit Message Templates (combined with icon slots) ────────────────────────────
 
-def _show_edit_messages_menu(message):
-    markup = types.InlineKeyboardMarkup(row_width=1)
+# Maps each template to its related icon slots (for combined edit menu)
+_TEMPLATE_ICON_SLOT_MAP = {
+    "otp_group":      ["otp_key", "otp_world", "otp_sms"],
+    "otp_dm":         ["dm_number_pre", "dm_country_pre", "dm_country_post"],
+    "otp_dm_v2":      ["dm_number_pre", "dm_country_pre", "dm_country_post"],
+    "start":          ["start_header", "start_crown", "start_user", "start_id",
+                       "start_status", "start_workers", "start_powered"],
+    "verify_success": ["verify_title"],
+    "number_assigned":[],
+    "broadcast":      [],
+}
+
+
+def _show_edit_messages_menu(message, note=""):
+    """Combined Message Edit menu: template text editor + per-template icon slots."""
+    with _custom_emoji_lock:
+        slots_set = dict(_custom_emojis.get("msg_slots", {}))
+
+    markup = types.InlineKeyboardMarkup(row_width=2)
+    lines = [
+        "✏️ <b>Message Edit</b>\n"
+        "━━━━━━━━━━━━━━\n"
+        "<i>মেসেজ টেক্সট এডিট বা custom emoji icon সেট করো:</i>"
+    ]
+
+    seen_slots: set = set()
     for key, label in _TEMPLATE_LABELS.items():
-        markup.add(types.InlineKeyboardButton(label, callback_data=f"editmsg:{key}", style="danger"))
+        lines.append(f"\n📄 <b>{label}</b>")
+        markup.add(types.InlineKeyboardButton(f"✏️ Edit: {label}", callback_data=f"editmsg:{key}", style="danger"))
+
+        icon_keys = _TEMPLATE_ICON_SLOT_MAP.get(key, [])
+        for slot_key in icon_keys:
+            if slot_key not in _MSG_ICON_SLOTS or slot_key in seen_slots:
+                continue
+            seen_slots.add(slot_key)
+            default_char, slot_label = _MSG_ICON_SLOTS[slot_key]
+            custom = slots_set.get(slot_key)
+            if custom:
+                fb = custom.get("fb", default_char)
+                lines.append(f"  ✅ {fb} <i>{slot_label}</i>")
+            else:
+                lines.append(f"  🔘 {default_char} <i>{slot_label}</i>")
+            markup.add(
+                types.InlineKeyboardButton(f"✏️ {slot_label}", callback_data=f"msgicon_set:{slot_key}"),
+                types.InlineKeyboardButton("🔄 Reset", callback_data=f"msgicon_reset:{slot_key}"),
+            )
+
     markup.add(types.InlineKeyboardButton("🔄 সব Default এ Reset করো", callback_data="editmsg_reset_all", style="success"))
-    bot.send_message(
-        message.chat.id,
-        "✏️🔥 <b>মেসেজ ফরমেট এডিট</b> 🔥✏️\n\n"
-        "কোন মেসেজ এডিট করতে চাও সিলেক্ট করো:",
-        reply_markup=markup,
-        parse_mode="HTML",
-    )
+    text = "\n".join(lines)
+    if note:
+        text += f"\n\n✅ <i>{note}</i>"
+    text += "\n\n━━━━━━━━━━━━━━"
+    try:
+        bot.send_message(message.chat.id, text, reply_markup=markup, parse_mode="HTML")
+    except Exception as e:
+        print(f"[MSG-EDIT] Failed: {e}")
 
 
 def _ask_new_template(call, key):
@@ -9614,7 +9867,7 @@ _ALL_MENU_BTNS = {
     "📞 𝗦𝘂𝗽𝗽𝗼𝗿𝘁 𝗜𝗗",
     "⚙️ 𝗦𝗲𝘁𝘁𝗶𝗻𝗴𝘀", "✏️ 𝗘𝗱𝗶𝘁 𝗠𝗲𝘀𝘀𝗮𝗴𝗲𝘀", "📡 𝗩𝟮 𝗠𝗲𝘀𝘀𝗮𝗴𝗲 𝗙𝗼𝗿𝗺𝗮𝘁", "🔀 𝗩𝟮 𝗣𝗮𝗻𝗲𝗹 𝗦𝗲𝗹𝗲𝗰𝘁",
     "🎛️ 𝗟𝗶𝘃𝗲 𝗖𝗼𝗻𝘀𝗼𝗹𝗲 𝗖𝗼𝗻𝗳𝗶𝗴", "📡 𝗘𝘅𝘁𝗿𝗮 𝗚𝗿𝗼𝘂𝗽𝘀", "👨‍💻 𝗗𝗲𝘃𝗲𝗹𝗼𝗽𝗲𝗿 𝗜𝗻𝗳𝗼", "⬅️🔙 𝗨𝘀𝗲𝗿 𝗠𝗲𝗻𝘂",
-    "🔙 𝗔𝗗𝗠𝗜𝗡 𝗣𝗔𝗡𝗘𝗟", "🔙 Admin Panel", "🔙 Admin Menu",
+    "🔙 𝗔𝗗𝗠𝗜𝗡 𝗣𝗔𝗡𝗘𝗟", "🔙 Admin Panel", "🔙 Admin Menu", "✨ 𝗠𝗲𝘀𝘀𝗮𝗴𝗲 𝗜𝗰𝗼𝗻𝘀",
     "🔘 Button Emoji Set", "🗑️ Button Emoji Del",
     "💬 Msg Emoji Set", "🗑️ Msg Emoji Del",
 }
